@@ -1,0 +1,320 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1100" font-family="'Helvetica Neue', Arial, sans-serif" font-size="13">
+  <style>
+    .lbl    { fill: #111; }
+    .lbl-w  { fill: #fff; }
+    .small  { font-size: 11px; }
+    .tiny   { font-size: 10px; }
+    .title  { font-size: 22px; font-weight: bold; }
+    .head   { font-size: 14px; font-weight: bold; }
+    .wire   { stroke-width: 2; fill: none; }
+    .rail   { stroke-width: 4; fill: none; }
+    .n-3v3  { stroke: #d22; }
+    .n-gnd  { stroke: #111; }
+    .n-sda  { stroke: #e88a00; }
+    .n-scl  { stroke: #0a8a3a; }
+    .n-sig  { stroke: #2a55c6; }
+    .n-adc  { stroke: #7a2bb8; }
+    .chip   { fill: #1f1f1f; stroke: #000; }
+    .pico   { fill: #1a3673; stroke: #000; }
+    .brkout { fill: #0f5a2c; stroke: #000; }
+    .pad    { fill: #d4b257; stroke: #4a3a10; stroke-width: 0.5; }
+    .pad-pwr{ fill: #d22; stroke: #4a0000; stroke-width: 0.5; }
+    .pad-gnd{ fill: #222; stroke: #888;    stroke-width: 0.5; }
+  </style>
+
+  <rect width="1400" height="1100" fill="#f6f5ee"/>
+
+  <text x="700" y="34" text-anchor="middle" class="title">Chaossynth wiring — RP2350-Zero + MCP23017 + TMUX4051</text>
+
+  <!-- ===== Legend ===== -->
+  <g transform="translate(40, 60)">
+    <text class="head" y="0">Net colors</text>
+    <g transform="translate(0, 22)">
+      <line x1="0"   y1="0" x2="36" y2="0" class="wire n-3v3"/><text x="42"  y="4">3.3 V</text>
+      <line x1="100" y1="0" x2="136" y2="0" class="wire n-gnd"/><text x="142" y="4">GND</text>
+      <line x1="200" y1="0" x2="236" y2="0" class="wire n-sda"/><text x="242" y="4">SDA</text>
+      <line x1="290" y1="0" x2="326" y2="0" class="wire n-scl"/><text x="332" y="4">SCL</text>
+      <line x1="380" y1="0" x2="416" y2="0" class="wire n-sig"/><text x="422" y="4">digital</text>
+      <line x1="490" y1="0" x2="526" y2="0" class="wire n-adc"/><text x="532" y="4">analog</text>
+    </g>
+  </g>
+
+  <!-- ===== Rails (3V3 top, GND bottom) ===== -->
+  <line x1="50"   y1="120" x2="1350" y2="120" class="rail n-3v3"/>
+  <text x="50" y="113" class="head" fill="#d22">3.3 V rail</text>
+  <line x1="50"   y1="1020" x2="1350" y2="1020" class="rail n-gnd"/>
+  <text x="50" y="1042" class="head" fill="#111">GND rail</text>
+
+  <!-- ===================================================================== -->
+  <!-- RP2350-Zero (left)                                                    -->
+  <!-- ===================================================================== -->
+  <g transform="translate(120, 200)">
+    <rect width="200" height="540" rx="12" class="pico"/>
+    <text x="100" y="28" text-anchor="middle" class="lbl-w head">RP2350-Zero</text>
+    <rect x="70" y="500" width="60" height="30" rx="4" fill="#888"/>
+    <text x="100" y="520" text-anchor="middle" class="lbl-w tiny">USB-C</text>
+
+    <!-- pin dots and labels (on right side, wires exit right) -->
+    <!-- 3V3 -->
+    <circle cx="200" cy="70"  r="6" class="pad-pwr"/>
+    <text   x="190" y="74"  text-anchor="end" class="lbl-w">3V3</text>
+    <!-- GND -->
+    <circle cx="200" cy="105" r="6" class="pad-gnd"/>
+    <text   x="190" y="109" text-anchor="end" class="lbl-w">GND</text>
+    <!-- GP4 SDA -->
+    <circle cx="200" cy="160" r="6" class="pad"/>
+    <text   x="190" y="164" text-anchor="end" class="lbl-w">GP4  SDA</text>
+    <!-- GP5 SCL -->
+    <circle cx="200" cy="195" r="6" class="pad"/>
+    <text   x="190" y="199" text-anchor="end" class="lbl-w">GP5  SCL</text>
+    <!-- GP6 mux A -->
+    <circle cx="200" cy="250" r="6" class="pad"/>
+    <text   x="190" y="254" text-anchor="end" class="lbl-w">GP6  → A</text>
+    <!-- GP7 mux B -->
+    <circle cx="200" cy="285" r="6" class="pad"/>
+    <text   x="190" y="289" text-anchor="end" class="lbl-w">GP7  → B</text>
+    <!-- GP8 mux C -->
+    <circle cx="200" cy="320" r="6" class="pad"/>
+    <text   x="190" y="324" text-anchor="end" class="lbl-w">GP8  → C</text>
+    <!-- GP26 ADC -->
+    <circle cx="200" cy="375" r="6" class="pad"/>
+    <text   x="190" y="379" text-anchor="end" class="lbl-w">GP26 ADC</text>
+  </g>
+
+  <!-- Pico rail connections -->
+  <!-- 3V3 from Pico to top rail -->
+  <polyline points="320,270 360,270 360,120" class="wire n-3v3"/>
+  <!-- GND from Pico to bottom rail -->
+  <polyline points="320,305 380,305 380,1020" class="wire n-gnd"/>
+
+  <!-- ===================================================================== -->
+  <!-- MCP23017 (middle, DIP-28 vertical with notch up)                      -->
+  <!-- ===================================================================== -->
+  <g transform="translate(620, 180)">
+    <rect width="180" height="640" rx="6" class="chip"/>
+    <text x="90" y="28" text-anchor="middle" class="lbl-w head">MCP23017</text>
+    <text x="90" y="46" text-anchor="middle" class="lbl-w tiny">DIP-28</text>
+    <!-- notch indicator -->
+    <circle cx="90" cy="68" r="8" fill="none" stroke="#fff" stroke-width="1.5"/>
+
+    <!-- Left column pins 1..14 (top to bottom) -->
+    <!-- pin 1 GPB0 -->
+    <circle cx="0"   cy="100" r="5" class="pad"/>
+    <text   x="10"  y="103" class="lbl-w tiny">1  GPB0</text>
+    <!-- pin 2 GPB1 -->
+    <circle cx="0"   cy="130" r="5" class="pad"/>
+    <text   x="10"  y="133" class="lbl-w tiny">2  GPB1</text>
+    <!-- pin 3..8 (just shown as dots) -->
+    <circle cx="0"   cy="160" r="5" class="pad"/><text x="10" y="163" class="lbl-w tiny">3  GPB2</text>
+    <circle cx="0"   cy="190" r="5" class="pad"/><text x="10" y="193" class="lbl-w tiny">4  GPB3</text>
+    <circle cx="0"   cy="220" r="5" class="pad"/><text x="10" y="223" class="lbl-w tiny">5  GPB4</text>
+    <circle cx="0"   cy="250" r="5" class="pad"/><text x="10" y="253" class="lbl-w tiny">6  GPB5</text>
+    <circle cx="0"   cy="280" r="5" class="pad"/><text x="10" y="283" class="lbl-w tiny">7  GPB6</text>
+    <circle cx="0"   cy="310" r="5" class="pad"/><text x="10" y="313" class="lbl-w tiny">8  GPB7</text>
+    <!-- pin 9 VDD -->
+    <circle cx="0"   cy="340" r="5" class="pad-pwr"/>
+    <text   x="10"  y="343" class="lbl-w tiny">9  VDD</text>
+    <!-- pin 10 VSS -->
+    <circle cx="0"   cy="370" r="5" class="pad-gnd"/>
+    <text   x="10"  y="373" class="lbl-w tiny">10 VSS</text>
+    <!-- pin 11 NC -->
+    <circle cx="0"   cy="400" r="5" fill="#555"/>
+    <text   x="10"  y="403" class="lbl-w tiny">11 NC</text>
+    <!-- pin 12 SCL -->
+    <circle cx="0"   cy="430" r="5" class="pad"/>
+    <text   x="10"  y="433" class="lbl-w tiny">12 SCL</text>
+    <!-- pin 13 SDA -->
+    <circle cx="0"   cy="460" r="5" class="pad"/>
+    <text   x="10"  y="463" class="lbl-w tiny">13 SDA</text>
+    <!-- pin 14 NC -->
+    <circle cx="0"   cy="490" r="5" fill="#555"/>
+    <text   x="10"  y="493" class="lbl-w tiny">14 NC</text>
+
+    <!-- Right column pins 15..28 (bottom to top) -->
+    <!-- pin 15 A0 -->
+    <circle cx="180" cy="490" r="5" class="pad-gnd"/>
+    <text   x="170" y="493" text-anchor="end" class="lbl-w tiny">A0  15</text>
+    <!-- pin 16 A1 -->
+    <circle cx="180" cy="460" r="5" class="pad-gnd"/>
+    <text   x="170" y="463" text-anchor="end" class="lbl-w tiny">A1  16</text>
+    <!-- pin 17 A2 -->
+    <circle cx="180" cy="430" r="5" class="pad-gnd"/>
+    <text   x="170" y="433" text-anchor="end" class="lbl-w tiny">A2  17</text>
+    <!-- pin 18 /RESET -->
+    <circle cx="180" cy="400" r="5" class="pad-pwr"/>
+    <text   x="170" y="403" text-anchor="end" class="lbl-w tiny">/RST 18</text>
+    <!-- pin 19 INTB -->
+    <circle cx="180" cy="370" r="5" fill="#555"/>
+    <text   x="170" y="373" text-anchor="end" class="lbl-w tiny">INTB 19</text>
+    <!-- pin 20 INTA -->
+    <circle cx="180" cy="340" r="5" fill="#555"/>
+    <text   x="170" y="343" text-anchor="end" class="lbl-w tiny">INTA 20</text>
+    <!-- pin 21..27 GPA0..GPA6 (placeholders) -->
+    <circle cx="180" cy="310" r="5" class="pad"/><text x="170" y="313" text-anchor="end" class="lbl-w tiny">GPA0 21</text>
+    <circle cx="180" cy="280" r="5" class="pad"/><text x="170" y="283" text-anchor="end" class="lbl-w tiny">GPA1 22</text>
+    <circle cx="180" cy="250" r="5" class="pad"/><text x="170" y="253" text-anchor="end" class="lbl-w tiny">GPA2 23</text>
+    <circle cx="180" cy="220" r="5" class="pad"/><text x="170" y="223" text-anchor="end" class="lbl-w tiny">GPA3 24</text>
+    <circle cx="180" cy="190" r="5" class="pad"/><text x="170" y="193" text-anchor="end" class="lbl-w tiny">GPA4 25</text>
+    <circle cx="180" cy="160" r="5" class="pad"/><text x="170" y="163" text-anchor="end" class="lbl-w tiny">GPA5 26</text>
+    <circle cx="180" cy="130" r="5" class="pad"/><text x="170" y="133" text-anchor="end" class="lbl-w tiny">GPA6 27</text>
+    <circle cx="180" cy="100" r="5" class="pad"/><text x="170" y="103" text-anchor="end" class="lbl-w tiny">GPA7 28</text>
+  </g>
+
+  <!-- ===== I²C with pull-ups ===== -->
+  <!-- SDA from Pico GP4 (320,360) to MCP pin 13 (620,640) -->
+  <polyline points="320,360 460,360 460,640 620,640" class="wire n-sda"/>
+  <!-- SCL from Pico GP5 (320,395) to MCP pin 12 (620,610) -->
+  <polyline points="320,395 440,395 440,610 620,610" class="wire n-scl"/>
+
+  <!-- Pull-up resistors: zigzag between SDA/SCL trunk and 3V3 rail -->
+  <!-- SDA pull-up at x=460, from y=120 (rail) down to y=360 (SDA trunk) -->
+  <g transform="translate(460, 120)">
+    <line x1="0" y1="0" x2="0" y2="60" class="wire n-3v3"/>
+    <polyline points="0,60 -8,68 8,76 -8,84 8,92 -8,100 8,108 0,116" class="wire" stroke="#444"/>
+    <line x1="0" y1="116" x2="0" y2="240" class="wire n-sda"/>
+    <text x="14" y="92" class="small">4.7k</text>
+  </g>
+  <!-- SCL pull-up at x=440, from y=120 to y=395 -->
+  <g transform="translate(420, 120)">
+    <line x1="0" y1="0" x2="0" y2="60" class="wire n-3v3"/>
+    <polyline points="0,60 -8,68 8,76 -8,84 8,92 -8,100 8,108 0,116" class="wire" stroke="#444"/>
+    <line x1="0" y1="116" x2="0" y2="275" class="wire n-scl"/>
+    <text x="-40" y="92" class="small">4.7k</text>
+  </g>
+
+  <!-- ===== MCP power & control connections ===== -->
+  <!-- VDD pin 9 (620, 520) to 3V3 rail, via long horizontal -->
+  <polyline points="620,520 510,520 510,120" class="wire n-3v3"/>
+  <!-- VSS pin 10 (620, 550) to GND rail -->
+  <polyline points="620,550 490,550 490,1020" class="wire n-gnd"/>
+
+  <!-- A0/A1/A2 to GND. pin 15 (800,670), pin 16 (800,640), pin 17 (800,610) -->
+  <polyline points="800,670 870,670 870,920 50,920 50,1020" class="wire n-gnd"/>
+  <polyline points="800,640 860,640 860,920" class="wire n-gnd"/>
+  <polyline points="800,610 850,610 850,920" class="wire n-gnd"/>
+
+  <!-- /RESET pin 18 (800,580) to 3V3 -->
+  <polyline points="800,580 880,580 880,150 50,150 50,120" class="wire n-3v3"/>
+
+  <!-- Decoupling cap between pins 9 and 10 (parallel lines on left of chip) -->
+  <g transform="translate(595, 535)">
+    <line x1="0" y1="-15" x2="0" y2="15" class="wire n-3v3"/>
+    <line x1="0" y1="15"  x2="-15" y2="15" class="wire n-3v3"/>
+    <line x1="-15" y1="10" x2="-15" y2="20" stroke="#333" stroke-width="2"/>
+    <line x1="-22" y1="10" x2="-22" y2="20" stroke="#333" stroke-width="2"/>
+    <line x1="-22" y1="15" x2="-32" y2="15" class="wire n-gnd"/>
+    <line x1="-32" y1="15" x2="-32" y2="-15" class="wire n-gnd"/>
+    <line x1="-32" y1="-15" x2="0" y2="-15" class="wire n-gnd"/>
+    <text x="-30" y="35" class="tiny">100 nF</text>
+  </g>
+
+  <!-- ===== Sample button on GPA0 (pin 21) ===== -->
+  <!-- GPA0 at (800,490) -->
+  <polyline points="800,490 940,490 940,560" class="wire n-sig"/>
+  <!-- Button symbol -->
+  <g transform="translate(940, 560)">
+    <circle cx="0" cy="0" r="4" fill="#222"/>
+    <line x1="0" y1="0" x2="0" y2="16" stroke="#222" stroke-width="2"/>
+    <line x1="-12" y1="16" x2="12" y2="16" stroke="#222" stroke-width="2"/>
+    <text x="20" y="14" class="small">push button</text>
+    <line x1="0" y1="32" x2="0" y2="60" stroke="#222" stroke-width="2"/>
+    <circle cx="0" cy="60" r="4" fill="#222"/>
+    <line x1="-14" y1="22" x2="14" y2="28" stroke="#222" stroke-width="1.5"/>
+  </g>
+  <!-- button to GND -->
+  <polyline points="940,624 940,1020" class="wire n-gnd"/>
+
+  <!-- ===================================================================== -->
+  <!-- TMUX4051 breakout (bottom right)                                      -->
+  <!-- ===================================================================== -->
+  <g transform="translate(1080, 580)">
+    <rect width="220" height="280" rx="6" class="brkout"/>
+    <text x="110" y="28" text-anchor="middle" class="lbl-w head">TMUX4051</text>
+    <text x="110" y="46" text-anchor="middle" class="lbl-w tiny">(breakout)</text>
+
+    <!-- Left column control pads -->
+    <circle cx="0" cy="80"  r="5" class="pad"/>    <text x="10" y="83"  class="lbl-w tiny">A   (S0)</text>
+    <circle cx="0" cy="110" r="5" class="pad"/>    <text x="10" y="113" class="lbl-w tiny">B   (S1)</text>
+    <circle cx="0" cy="140" r="5" class="pad"/>    <text x="10" y="143" class="lbl-w tiny">C   (S2)</text>
+    <circle cx="0" cy="170" r="5" class="pad-pwr"/><text x="10" y="173" class="lbl-w tiny">D   (EN)</text>
+    <circle cx="0" cy="200" r="5" class="pad"/>    <text x="10" y="203" class="lbl-w tiny">X   (COM)</text>
+    <circle cx="0" cy="230" r="5" class="pad-gnd"/><text x="10" y="233" class="lbl-w tiny">-A  (VSS)</text>
+    <circle cx="0" cy="260" r="5" class="pad-gnd"/><text x="10" y="263" class="lbl-w tiny">GND</text>
+    <circle cx="0" cy="290" r="5" class="pad-pwr"/><text x="10" y="293" class="lbl-w tiny">V+</text>
+
+    <!-- Right column channel pads 1..8 -->
+    <circle cx="220" cy="80"  r="5" class="pad"/><text x="210" y="83"  text-anchor="end" class="lbl-w tiny">1 (ch0)</text>
+    <circle cx="220" cy="110" r="5" class="pad"/><text x="210" y="113" text-anchor="end" class="lbl-w tiny">2 (ch1)</text>
+    <circle cx="220" cy="140" r="5" class="pad"/><text x="210" y="143" text-anchor="end" class="lbl-w tiny">3</text>
+    <circle cx="220" cy="170" r="5" class="pad"/><text x="210" y="173" text-anchor="end" class="lbl-w tiny">4</text>
+    <circle cx="220" cy="200" r="5" class="pad"/><text x="210" y="203" text-anchor="end" class="lbl-w tiny">5</text>
+    <circle cx="220" cy="230" r="5" class="pad"/><text x="210" y="233" text-anchor="end" class="lbl-w tiny">6</text>
+    <circle cx="220" cy="260" r="5" class="pad"/><text x="210" y="263" text-anchor="end" class="lbl-w tiny">7</text>
+    <circle cx="220" cy="290" r="5" class="pad"/><text x="210" y="293" text-anchor="end" class="lbl-w tiny">8</text>
+  </g>
+
+  <!-- Note about D=EN polarity -->
+  <text x="1080" y="900" class="small" fill="#a30">
+    ⚠ Check silkscreen: if "D" is active-LOW (EN with bar), tie to GND instead of 3V3.
+  </text>
+
+  <!-- ===== Mux connections ===== -->
+  <!-- GP6 → A at (1080, 660) -->
+  <polyline points="320,450 1020,450 1020,660 1080,660" class="wire n-sig"/>
+  <text x="1000" y="445" class="tiny" text-anchor="end">GP6 → A</text>
+  <!-- GP7 → B at (1080, 690) -->
+  <polyline points="320,485 1010,485 1010,690 1080,690" class="wire n-sig"/>
+  <text x="1000" y="480" class="tiny" text-anchor="end">GP7 → B</text>
+  <!-- GP8 → C at (1080, 720) -->
+  <polyline points="320,520 1000,520 1000,720 1080,720" class="wire n-sig"/>
+  <text x="1000" y="515" class="tiny" text-anchor="end">GP8 → C</text>
+  <!-- GP26 → X (COM) at (1080, 780) -->
+  <polyline points="320,575 990,575 990,780 1080,780" class="wire n-adc"/>
+  <text x="1000" y="570" class="tiny" text-anchor="end">GP26 → X</text>
+
+  <!-- V+ → 3V3 (Mux 1300,870) -->
+  <polyline points="1300,870 1340,870 1340,120" class="wire n-3v3"/>
+  <!-- GND, -A → GND -->
+  <polyline points="1080,840 1060,840 1060,1020" class="wire n-gnd"/>
+  <polyline points="1080,810 1050,810 1050,1020" class="wire n-gnd"/>
+  <!-- EN (D) → 3V3 -->
+  <polyline points="1080,750 1330,750 1330,120" class="wire n-3v3"/>
+
+  <!-- ===== Sample pot on Mux channel 0 (pin 1, at 1300,660) ===== -->
+  <g transform="translate(1340, 660)">
+    <!-- pot body box -->
+    <rect x="0" y="-30" width="50" height="60" rx="4" fill="#bbb" stroke="#333"/>
+    <text x="25" y="3" text-anchor="middle" class="tiny">pot</text>
+    <!-- three terminals -->
+    <line x1="0" y1="-15" x2="-10" y2="-15" stroke="#222" stroke-width="1.5"/>
+    <line x1="0" y1="0"   x2="-10" y2="0"   stroke="#222" stroke-width="1.5"/>
+    <line x1="0" y1="15"  x2="-10" y2="15"  stroke="#222" stroke-width="1.5"/>
+    <text x="-12" y="-12" text-anchor="end" class="tiny">3V3</text>
+    <text x="-12" y="3"   text-anchor="end" class="tiny">wiper → ch0</text>
+    <text x="-12" y="18"  text-anchor="end" class="tiny">GND</text>
+  </g>
+  <!-- pot wires -->
+  <polyline points="1300,660 1330,660" class="wire n-sig"/>
+  <polyline points="1330,645 1310,645 1310,120" class="wire n-3v3"/>
+  <polyline points="1330,675 1320,675 1320,1020" class="wire n-gnd"/>
+
+  <!-- TMUX4051 decoupling cap (next to V+) -->
+  <g transform="translate(1320, 870)">
+    <line x1="0" y1="-12" x2="0" y2="12" class="wire n-3v3"/>
+    <line x1="0" y1="12" x2="-15" y2="12" class="wire n-3v3"/>
+    <line x1="-15" y1="7" x2="-15" y2="17" stroke="#333" stroke-width="2"/>
+    <line x1="-22" y1="7" x2="-22" y2="17" stroke="#333" stroke-width="2"/>
+    <line x1="-22" y1="12" x2="-32" y2="12" class="wire n-gnd"/>
+    <line x1="-32" y1="12" x2="-32" y2="-12" class="wire n-gnd"/>
+    <line x1="-32" y1="-12" x2="0" y2="-12" class="wire n-gnd"/>
+    <text x="-30" y="32" class="tiny">100 nF</text>
+  </g>
+
+  <!-- ===== Footer notes ===== -->
+  <g transform="translate(40, 1060)">
+    <text class="small" fill="#444">
+      Build order: solder Pico headers + MCP socket → power/GND rails → I²C + pull-ups → /RESET + A0/A1/A2 + decoupling cap.
+      Insert MCP, test with one button on GPA0. Then wire the mux and test with one pot on channel 0. Only then scale up.
+    </text>
+  </g>
+</svg>

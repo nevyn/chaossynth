@@ -191,8 +191,10 @@ void loop() {
     }
     if (pressed && !buttonState[i]) {
       MIDI.sendNoteOn(b.note, 127, MIDI_CHANNEL);
+      if (SERIAL_DEBUG) { Serial.print("button "); Serial.print(i); Serial.println(" down"); }
     } else if (!pressed && buttonState[i]) {
       MIDI.sendNoteOff(b.note, 0, MIDI_CHANNEL);
+      if (SERIAL_DEBUG) { Serial.print("button "); Serial.print(i); Serial.println(" up"); }
     }
     buttonState[i] = pressed;
   }
@@ -215,8 +217,4 @@ void loop() {
     }
   }
 
-  if (SERIAL_DEBUG) {
-    for (size_t i = 0; i < NUM_BUTTONS; i++) Serial.print(buttonState[i] ? '1' : '0');
-    Serial.println();
-  }
 }
