@@ -61,7 +61,9 @@ esac
 value_ok "$PUBKEY" || die "SSH pubkey contains characters I refuse to embed"
 
 say "hashing password (never stored in plain text on the card)"
-HASH=$(printf '%s' "$CHAOS_PASSWORD" | openssl passwd -6 -stdin)
+# Stock macOS LibreSSL has no `passwd -6`; the Homebrew openssl does.
+HASH=$(printf '%s' "$CHAOS_PASSWORD" | openssl passwd -6 -stdin) \
+  || die "this openssl can't SHA512-crypt (-6). Stock macOS LibreSSL lacks it: brew install openssl, put it first in PATH"
 
 # One NetworkManager keyfile per network; higher index = higher priority,
 # so the phone hotspot (WIFI2) wins over home wifi when both are visible.

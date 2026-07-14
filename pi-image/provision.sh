@@ -33,7 +33,9 @@ say() { echo; echo "==> $*"; }
 say "apt: supercollider + plugins (first run downloads a lot; be patient)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y supercollider sc3-plugins rsync alsa-utils
+# overlayroot is pre-baked so overlayfs.sh works offline at festival lockdown
+# (raspi-config otherwise apt-installs it lazily on first enable).
+apt-get install -y supercollider sc3-plugins rsync alsa-utils overlayroot
 
 say "audio: default ALSA card -> $AUDIO_CARD"
 cat >/etc/asound.conf <<EOF
@@ -45,6 +47,11 @@ say "audio: device for the synth (synth/run.sh reads CHAOS_ALSA_DEV)"
 cat >/etc/default/chaossynth <<EOF
 # Written by pi-image/provision.sh. The one knob for the output device.
 CHAOS_ALSA_DEV=hw:$AUDIO_CARD
+# Debian's sclang is Qt-built; without a display it aborts at startup unless
+# Qt renders offscreen. Missing this = silent crash-looping service.
+QT_QPA_PLATFORM=offscreen
+# jackd2's dbus device-reservation needs a session bus that services don't have.
+JACK_NO_AUDIO_RESERVATION=1
 EOF
 
 say "audio: unmute, full volume (the speaker's own knob sets loudness)"
@@ -71,6 +78,10 @@ EnvironmentFile=-/etc/default/chaossynth
 ExecStart=/home/$RUN_USER/chaossynth/synth/run.sh
 Restart=always
 RestartSec=3
+# PAM audio-group limits don't apply to services; without these jackd runs
+# without realtime scheduling and risks xruns.
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
 
 [Install]
 WantedBy=multi-user.target

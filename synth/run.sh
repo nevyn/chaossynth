@@ -32,12 +32,18 @@ if [ -z "$SCLANG" ]; then
 fi
 
 if [ "$PLATFORM" = "pi" ]; then
+  # Headless armor (also set in /etc/default/chaossynth; kept here so a bare
+  # `./run.sh` over SSH works too): Qt-built sclang needs offscreen rendering,
+  # and jackd2's dbus device-reservation has no session bus under a service.
+  export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-offscreen}"
+  export JACK_NO_AUDIO_RESERVATION="${JACK_NO_AUDIO_RESERVATION:-1}"
   # scsynth on Linux speaks JACK only. Run jackd on the headphone jack unless
-  # something (systemd, a previous run) already started it.
+  # something (systemd, a previous run) already started it. -P: playback-only,
+  # the jack has no capture side.
   ALSA_DEV="${CHAOS_ALSA_DEV:-hw:Headphones}"
   if ! pgrep -x jackd >/dev/null 2>&1; then
     echo "chaossynth: starting jackd on $ALSA_DEV"
-    jackd -d alsa -d "$ALSA_DEV" -r 48000 -p 1024 -n 3 &
+    jackd -d alsa -d "$ALSA_DEV" -P -r 48000 -p 1024 -n 3 &
     sleep 2
     if ! pgrep -x jackd >/dev/null 2>&1; then
       echo "ERROR: jackd failed to start on $ALSA_DEV (is the device name right? try 'aplay -l')" >&2
