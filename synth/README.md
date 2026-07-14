@@ -53,6 +53,9 @@ tools/smoke-test.sh
 | `ONESHOT: slot N` | thunder / whale / bell swell fired |
 | `MACRO: param = value` | a pot with a `synth{}` blob moved its macro (filter/space/echo/phaser/energy/wobble/timbre/chaos) |
 | `ROLE: '...' not implemented yet` | mapping assigns a role the engine doesn't know (logged once) |
+| `SAMPLES: chop bank ready` / `no wavs` | first samples/amen wav sliced for the chop buttons (or absent: chops silent) |
+| `CHOP: slice N` | a chop button played its break slice (unquantized until the beat work) |
+| `RELAX: param easing home / home` | a pot untouched for 10 min eased back to its default over 2 min |
 | `CHAOSSYNTH FATAL` | exiting on purpose so systemd restarts us |
 
 Env knobs (mostly for tests): `CHAOS_PLATFORM=pi|mac`, `CHAOS_IDLE_TIMEOUT`,
@@ -60,7 +63,8 @@ Env knobs (mostly for tests): `CHAOS_PLATFORM=pi|mac`, `CHAOS_IDLE_TIMEOUT`,
 `hw:Headphones`), `CHAOS_MIDI_SOURCE` (accept one extra MIDI source name
 besides "Chaossynth"), `CHAOS_FAKE_HOUR` (0-23, pin the atmosphere clock),
 `CHAOS_CLOCK_UNTRUSTED=1` (force the no-RTC safe fallback), `CHAOS_MAPPING`
-(alternate mapping.json path, e.g. `auditions/roles-demo.json`).
+(alternate mapping.json path, e.g. `auditions/roles-demo.json`),
+`CHAOS_RELAX_AFTER` / `CHAOS_RELAX_OVER` (pot relaxation timing, seconds).
 
 ## Simulate mode / IAC
 

@@ -71,11 +71,13 @@ reintroduce a 5th **Dawn** slot (06-10-ish, sparser than Day) later.
 
 Implemented in the engine, verified by tools/roles-test.scd + smoke-test.sh:
 atmospheres + drift, role dispatch (`root`, `voice` w/ degree, `bass`,
-`hold_fx` incl. cc_momentary, `oneshot` slots 0-2 = thunder/whale/bell), all
-8 macro pots (energy is stored but unconsumed), master echo + phaser stages.
-Try it: `CHAOS_MAPPING=auditions/roles-demo.json ./run.sh`. Still to build:
-energy integrator + beats, chops/sample banks, tempo-synced echo, pot
-relaxation, 10-min atmosphere crossfades, Night pad, mode switch, phone. Deep's volume/low-end caps (hardest 01–06)
+`hold_fx` incl. cc_momentary, `oneshot` slots 0-2 = thunder/whale/bell,
+`chop` = amen slices at natural rate), all 8 macro pots (energy is stored but
+unconsumed), master echo + phaser stages, pot relaxation (10 min stale ->
+ease home over 2 min). Try it: `CHAOS_MAPPING=auditions/roles-demo.json
+./run.sh`. Still to build: energy integrator + beats, chop quantization +
+per-atmosphere banks, tempo-synced echo, 10-min atmosphere crossfades, Night
+pad, mode switch, phone. Deep's volume/low-end caps (hardest 01–06)
 are the sound-policy answer — sub reads cozy at the panel but carries across a
 camp at night, so it gets level-capped there, not removed. Verify the actual
 Borderland quiet hours and adjust boundaries (TBD).

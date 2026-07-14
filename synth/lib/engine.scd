@@ -8,6 +8,8 @@
 ~chaosVoiceCap = 24;
 ~chaosDroneAmp = 1.0;
 
+~chaosSynthRoot = thisProcess.nowExecutingPath.dirname.dirname; // synth/ (resolved at load)
+
 ~chaosVoices = IdentityDictionary.new; // note -> synth
 ~chaosVoiceOrder = List.new;           // notes, oldest first, for the cap
 ~chaosUnmappedLogged = Set.new;
@@ -63,26 +65,36 @@
 	"HOLDFX: % % ('%')".format(fx, if (engaged) { "ON" } { "off" }, ctl["label"]).postln;
 };
 
+// Macro pots: apply functions + defaults in 0..1 space. State (value + last
+// touch) feeds the relaxation task in ~chaosEngineStart.
+~chaosMacroDefs = IdentityDictionary[
+	\filter -> (default: 1.0, apply: { |v| ~chaosMaster.set(\cutoff, v.linexp(0, 1, 200, 12000)) }),
+	\space  -> (default: 0.4, apply: { |v| ~chaosMaster.set(\verbMix, v * 0.6, \verbRoom, v.linlin(0, 1, 0.3, 0.95)) }),
+	\echo   -> (default: 0.0, apply: { |v| ~chaosMaster.set(\echoMix, v * 0.6, \echoFb, v.linlin(0, 1, 0.2, 0.85)) }),
+	\phaser -> (default: 0.0, apply: { |v| ~chaosMaster.set(\phaserDepth, v, \phaserRate, v.linexp(0, 1, 0.05, 1.5)) }),
+	\timbre -> (default: 0.5, apply: { |v| ~chaosTimbre = v }),
+	\chaos  -> (default: 0.0, apply: { |v| ~chaosChaos = v }),
+	\wobble -> (default: 0.45, apply: { |v| ~chaosWobble = v }),
+	\energy -> (default: 0.0, apply: { |v| ~chaosEnergyBias = v }) // consumed by the energy build
+];
+~chaosMacroState = IdentityDictionary.new; // param -> (val, touch, relaxFrom, relaxStart)
+~chaosRelaxAfter = ("CHAOS_RELAX_AFTER".getenv ? "600").asFloat; // s untouched before easing
+~chaosRelaxOver = ("CHAOS_RELAX_OVER".getenv ? "120").asFloat;   // s to ease home
+
 ~chaosMacro = { |param, val, ctl|
-	var v = val / 127.0;
-	var known = true;
-	case
-	{ param == "filter" } { ~chaosMaster.set(\cutoff, val.linexp(0, 127, 200, 12000)) }
-	{ param == "space" } { ~chaosMaster.set(\verbMix, v * 0.6, \verbRoom, v.linlin(0, 1, 0.3, 0.95)) }
-	{ param == "echo" } { ~chaosMaster.set(\echoMix, v * 0.6, \echoFb, v.linlin(0, 1, 0.2, 0.85)) }
-	{ param == "phaser" } { ~chaosMaster.set(\phaserDepth, v, \phaserRate, v.linexp(0, 1, 0.05, 1.5)) }
-	{ param == "timbre" } { ~chaosTimbre = v }
-	{ param == "chaos" } { ~chaosChaos = v }
-	{ param == "wobble" } { ~chaosWobble = v }
-	{ param == "energy" } { ~chaosEnergyBias = v } // stored; consumed by the energy build
-	{ true } {
-		known = false;
+	var key = param.asSymbol;
+	var def = ~chaosMacroDefs[key];
+	if (def.notNil) {
+		var v = val / 127.0;
+		~chaosMacroState[key] = (val: v, touch: Main.elapsedTime);
+		def[\apply].value(v);
+		"MACRO: % = % ('%')".format(param, val, ctl["label"]).postln;
+	} {
 		if (~chaosUnmappedLogged.includes("param" + param).not) {
 			~chaosUnmappedLogged.add("param" + param);
 			"MACRO: unknown param '%' ('%') — logged once".format(param, ctl["label"]).postln;
 		};
 	};
-	if (known) { "MACRO: % = % ('%')".format(param, val, ctl["label"]).postln };
 };
 
 // --- Atmospheres ---
@@ -104,6 +116,27 @@
 ~chaosAtmoNow = { if (~chaosClockUntrusted) { \day } { ~chaosAtmoForHour.(~chaosHourNow.()) } };
 ~chaosDroneTarget = { ~chaosDroneAmp * if (~chaosClockUntrusted) { 0.4 } { 1.0 } };
 ~chaosAtmo = nil;
+
+// Chop bank: the first wav (alphabetically) of samples/amen, sliced in 8.
+// v1 plays slices at natural rate, unquantized — the grid lands with the
+// beat/tempo work. Missing bank = silent chop buttons + one loud log line.
+~chaosChopReady = false;
+~chaosLoadSamples = { |s|
+	var dir = ~chaosSynthRoot +/+ "samples" +/+ "amen";
+	var files = PathName(dir).files
+		.select { |f| f.extension.asString.toLower == "wav" }
+		.collect(_.fullPath).sort;
+	if (files.isEmpty) {
+		"SAMPLES: no wavs in % — chop buttons disabled".format(dir).postln;
+	} {
+		~chaosChopBuf = Buffer.read(s, files.first, action: { |b|
+			~chaosChopReady = true;
+			"SAMPLES: chop bank ready (%, % s)".format(
+				PathName(files.first).fileName,
+				(b.numFrames / b.sampleRate).round(0.01)).postln;
+		});
+	};
+};
 
 // Swap the drone to an atmosphere's pad, crossfading over 30 s.
 // TODO: the brief asks for ~10 min boundary crossfades; revisit with energy.
@@ -210,6 +243,23 @@
 		], "BASS: root % wobble % Hz ('%')".format(root, rate.round(0.1), ctl["label"]));
 	}
 	{ role == "hold_fx" } { ~chaosHoldFx.(ctl, true) }
+	{ role == "chop" } {
+		if (~chaosChopReady == true) {
+			var slot = (((ctl["synth"]["slot"] !? { |v| ~cInt.(v) }) ? 0)) % 8;
+			var frames = ~chaosChopBuf.numFrames div: 8;
+			Synth(\chaosChop, [
+				\out, ~chaosBus, \buf, ~chaosChopBuf,
+				\start, slot * frames,
+				\dur, (frames / ~chaosChopBuf.sampleRate) - 0.04
+			], ~chaosVoiceGroup);
+			"CHOP: slice % ('%')".format(slot, ctl["label"]).postln;
+		} {
+			if (~chaosUnmappedLogged.includes("chop-nobank").not) {
+				~chaosUnmappedLogged.add("chop-nobank");
+				"CHOP: no sample bank loaded — button silent (logged once)".postln;
+			};
+		};
+	}
 	{ role == "oneshot" } {
 		var slot = (((ctl["synth"]["slot"] !? { |v| ~cInt.(v) }) ? 0)) % 3;
 		var def = [\chaosThunder, \chaosWhale, \chaosBellSwell][slot];
@@ -339,6 +389,32 @@
 		var atmo = ~chaosAtmoNow.();
 		if (atmo != ~chaosAtmo) { ~chaosSpawnDrone.(atmo) };
 		60
+	});
+
+	~chaosLoadSamples.(s);
+
+	// Pot relaxation: after ~10 min untouched, macro values ease back to their
+	// defaults over ~2 min — the panel self-heals; nobody's 3 a.m. filter-closed
+	// prank lasts until morning. Any new touch resets the state and cancels it.
+	SystemClock.sched(5, {
+		var now = Main.elapsedTime;
+		~chaosMacroState.keysValuesDo { |key, st|
+			var target = ~chaosMacroDefs[key][\default];
+			if (((now - st[\touch]) > ~chaosRelaxAfter) and: { (st[\val] - target).abs > 0.001 }) {
+				if (st[\relaxStart].isNil) {
+					st[\relaxStart] = now;
+					st[\relaxFrom] = st[\val];
+					"RELAX: % easing home over % s".format(key, ~chaosRelaxOver).postln;
+				};
+				st[\val] = st[\relaxFrom] + ((target - st[\relaxFrom])
+					* ((now - st[\relaxStart]) / ~chaosRelaxOver).min(1));
+				~chaosMacroDefs[key][\apply].value(st[\val]);
+				if ((st[\val] - target).abs <= 0.001) {
+					"RELAX: % home".format(key).postln;
+				};
+			};
+		};
+		5
 	});
 
 	"ENGINE: started (idle timeout % s, max hold % s, voice cap %, atmosphere %)"

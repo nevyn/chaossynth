@@ -25,7 +25,7 @@
     { "id": 15, "kind": "button", "label": "thunder",      "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 13 }, "midi": { "type": "note", "note": 15 }, "synth": { "role": "oneshot", "slot": 0 } },
     { "id": 16, "kind": "button", "label": "whale",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 14 }, "midi": { "type": "note", "note": 16 }, "synth": { "role": "oneshot", "slot": 1 } },
     { "id": 17, "kind": "button", "label": "bell swell",   "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 15 }, "midi": { "type": "note", "note": 17 }, "synth": { "role": "oneshot", "slot": 2 } },
-    { "id": 18, "kind": "button", "label": "chop (stub)",  "pos": null, "wiring": { "source": "pico", "gpio": 0 },                "midi": { "type": "note", "note": 18 }, "synth": { "role": "chop", "slot": 0 } },
+    { "id": 18, "kind": "button", "label": "amen chop",  "pos": null, "wiring": { "source": "pico", "gpio": 0 },                "midi": { "type": "note", "note": 18 }, "synth": { "role": "chop", "slot": 0 } },
     { "id": 0,  "kind": "pot",    "label": "filter",       "pos": null, "wiring": { "source": "pico_adc", "gpio": 27 },           "midi": { "type": "cc", "cc": 20 },     "synth": { "role": "macro", "param": "filter" } },
     { "id": 1,  "kind": "pot",    "label": "space",        "pos": null, "wiring": { "source": "pico_adc", "gpio": 28 },           "midi": { "type": "cc", "cc": 21 },     "synth": { "role": "macro", "param": "space" } },
     { "id": 2,  "kind": "pot",    "label": "echo",         "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 0 },    "midi": { "type": "cc", "cc": 22 },     "synth": { "role": "macro", "param": "echo" } },

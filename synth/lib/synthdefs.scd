@@ -47,6 +47,13 @@
 		Out.ar(out, Pan2.ar(sig * env * amp * 0.5, Rand(-0.4, 0.4)));
 	}).add;
 
+	// Break slice (role "chop"): plays a window of the loaded stereo bank.
+	SynthDef(\chaosChop, { |out = 0, buf = 0, start = 0, dur = 0.3, amp = 0.6, rate = 1|
+		var env = EnvGen.kr(Env.linen(0.004, dur, 0.03), doneAction: 2);
+		var sig = PlayBuf.ar(2, buf, rate * BufRateScale.kr(buf), 1, start, 0);
+		Out.ar(out, sig * env * amp);
+	}).add;
+
 	SynthDef(\chaosBellSwell, { |out = 0, freq = 440, amp = 0.5|
 		var exc = PinkNoise.ar(EnvGen.kr(Env.new([0, 1, 0], [1.2, 0.4])) * 0.02);
 		var sig = Klank.ar(`[[1, 2.756, 5.404, 8.933], [1, 0.6, 0.4, 0.25], [2.5, 2, 1.5, 1]],
