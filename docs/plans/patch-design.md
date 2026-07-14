@@ -59,6 +59,15 @@ the button build").
 Afterhours volume/low-end caps are the sound-policy answer; verify the actual
 Borderland quiet hours and adjust boundaries (TBD).
 
+**Clock integrity (required):** the Pi 4 has no RTC and the field has no NTP;
+with overlayfs on, clock saves land in RAM, so after any power cut the time
+rewinds to whenever lockdown was enabled — Night breakcore at dawn, defeating
+the quiet-hours cap. The engine must treat the wall clock as untrusted when it
+can't be accounted for, falling back to a safe atmosphere (Day's palette with
+Afterhours' volume cap) until the clock is plausible again (e.g. NTP over the
+maintenance hotspot). Hardware RTC module: Nevyn's call, would erase the whole
+problem.
+
 ## Button roles
 
 | Role | Count | Behavior |
@@ -109,7 +118,10 @@ Master volume is NOT one of the 8 (evict the placeholder on pot 3).
   thunder, whale, subs, dub stabs): zero assets, zero licensing, fits the
   aesthetic.
 - **Sample files only for breaks** (amen etc.): `synth/samples/<bank>/`, short
-  mono WAVs, loaded into slots alphabetically. Nevyn sources the break.
+  WAVs (mono or stereo — the loader must handle both; the landed amen bank is
+  stereo), loaded into slots alphabetically. Nevyn sources the break.
+  No git-lfs is configured (decided 07-14): keep banks small, and no more big
+  binary batches land without revisiting that decision.
 
 ## mapping.json `synth{}` schema (pinning the contract's free-form object)
 
@@ -130,6 +142,11 @@ Buttons: all roles except `macro`. Pots: `macro` only, `param` one of
 Unknown role or param: log once, ignore (contract rule). Empty `synth{}`:
 buttons act as `voice` with `degree = id`; pots log once and do nothing.
 Extra per-role fields are allowed; consumers ignore what they don't know.
+
+Special buttons (`midi.type` `cc_momentary`/`cc_toggle`, CC 40+): `hold_fx` is
+the natural `cc_momentary` (CC 127 while held = effect engaged); every other
+role assumes a plain `note` button. A special button with empty `synth{}` logs
+once and does nothing, like pots.
 
 ## Stretch: the telephone
 

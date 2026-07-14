@@ -40,7 +40,11 @@ aftertouch. Don't emit them, don't listen for them.
 
 ## Lifecycle
 
-- Firmware sends **CC 123 (All Notes Off), value 0** once at boot.
+- Firmware sends **CC 123 (All Notes Off), value 0** on every USB mount —
+  first boot and any cable re-plug — before anything else. (Amended 07-14:
+  was "once at boot"; every-mount is what ships, and it's safer after yanks.)
+- On mount, each pot also emits one baseline CC so the synth starts from the
+  knobs' physical reality instead of stale values.
 - Synth, on CC 123: release every held voice.
 - Synth must **log and ignore** any note/CC not in the mapping — never crash,
   never guess. Unmapped input is a mapping bug to surface, not an error to hide.
@@ -93,9 +97,9 @@ synth, and the source of truth from which the firmware header is generated.
   - `"mux"` — 4051 channel: `{ "source": "mux", "mux": 0, "channel": 4 }`
 - `midi.type` is `"note"` (buttons, default), `"cc"` (pots), `"cc_momentary"` or
   `"cc_toggle"` (special buttons).
-- `synth` is a free-form object owned by patch design
-  (docs/plans/patch-design.md pins its schema later). The synth ignores fields it
-  doesn't know; the layout tool round-trips it untouched.
+- `synth` is a free-form object owned by patch design — schema now pinned in
+  docs/plans/patch-design.md. The synth ignores fields it doesn't know; the
+  layout tool round-trips it untouched.
 - Consumers must refuse a file whose `version` they don't know.
 
 ## mapping.h
