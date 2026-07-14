@@ -91,8 +91,22 @@ constexpr Mux muxes[] = {
 constexpr Button buttons[] = {
   Button::onPico(2, 60),           // direct: GP2 -> C4
   Button::onPico(3, 61),           // direct: GP3 -> C#4
-  Button::onExpander(0, 0, 62),    // expander 0, pin GPA0 -> D4
-  Button::onExpander(0, 1, 63),    // expander 0, pin GPA1 -> D#4
+  Button::onExpander(0, 0, 62),    // expander 0, GPA0 (DIP pin 21) -> D4
+  Button::onExpander(0, 1, 63),    // expander 0, GPA1 (DIP pin 22) -> D#4
+  Button::onExpander(0, 2, 64),    // expander 0, GPA2 (DIP pin 23) -> E4
+  Button::onExpander(0, 3, 65),    // expander 0, GPA3 (DIP pin 24) -> F4
+  Button::onExpander(0, 4, 66),    // expander 0, GPA4 (DIP pin 25) -> F#4
+  Button::onExpander(0, 5, 67),    // expander 0, GPA5 (DIP pin 26) -> G4
+  Button::onExpander(0, 6, 68),    // expander 0, GPA6 (DIP pin 27) -> G#4
+  Button::onExpander(0, 7, 69),    // expander 0, GPA7 (DIP pin 28) -> A4
+  Button::onExpander(0, 8, 70),    // expander 0, GPB0 (DIP pin 1) -> A#4
+  Button::onExpander(0, 9, 71),    // expander 0, GPB1 (DIP pin 2) -> B4
+  Button::onExpander(0, 10, 72),   // expander 0, GPB2 (DIP pin 3) -> C5
+  Button::onExpander(0, 11, 73),   // expander 0, GPB3 (DIP pin 4) -> C#5 
+  Button::onExpander(0, 12, 74),   // expander 0, GPB4 (DIP pin 5) -> D5
+  Button::onExpander(0, 13, 75),   // expander 0, GPB5 (DIP pin 6) -> D#5
+  Button::onExpander(0, 14, 76),   // expander 0, GPB6 (DIP pin 7) -> E5
+  Button::onExpander(0, 15, 77),   // expander 0, GPB7 (DIP pin 8) -> F5
 };
 
 // Pots: any mix of direct ADC and mux channels.
