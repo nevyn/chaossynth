@@ -32,6 +32,12 @@ the matching doc under docs/ — the docs are the memory.
 - **Stay in your lane.** Each docs/plans/*.md names the directory it builds, plus
   any docs it should update. Parallel sessions are building the sibling directories
   right now; touching them causes merge pain.
+- **Parallel sessions share this ONE checkout** (no worktrees). So: stage only
+  your own paths (`git add firmware/ docs/plans/firmware.md` — never `git add
+  -A` or `commit -a`) and always commit with an explicit pathspec
+  (`git commit -m "..." -- firmware/`), so a sibling's staged work can't be
+  swept into your commit. Unrelated dirty/untracked files in `git status` are a
+  sibling session mid-work: ignore them, never clean them up.
 - **Never run destructive commands** (rm -rf, resetting caches or stores, raw disk
   writes) — not even to fix a build problem. Ask instead.
 - Atomic commits as you go; the message explains the rationale, not the diff.

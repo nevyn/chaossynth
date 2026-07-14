@@ -52,3 +52,10 @@ button did I just wire?" head-scratching — correctness and clarity over beauty
 - Write only inside the user-chosen project dir, and only the two contract files
   plus layout-tool/panel.jpg.
 - Don't touch firmware engine code, synth/, pi-image/. No destructive commands.
+- **Parallel-build coordination**: firmware/build.sh and the checked-in
+  mapping.h are the firmware workstream's deliverables and may not exist or be
+  stable while you work. Until docs/plans/firmware.md is marked done in
+  docs/plan-v1.md: verify your header generation by diffing against the
+  checked-in mapping.h (same seed data — should match semantically), and do NOT
+  overwrite it in the repo. Run the build.sh acceptance check afterwards; if
+  you finish first, leave it as an explicitly unchecked box in plan-v1.md.

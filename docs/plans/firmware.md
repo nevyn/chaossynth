@@ -44,6 +44,9 @@ and firmware/README.md).
 ## Acceptance
 
 - `./build.sh` exits 0 from a clean checkout — the agent-verifiable gate.
+- You own mapping.h and build.sh; the layout-tool workstream diffs its generated
+  header against yours and runs your build script. Commit both EARLY, and flip
+  your row to done in docs/plan-v1.md when finished — that's their green light.
 - Code review against the contract: every MIDI byte the firmware can emit is
   listed there, nothing else.
 - firmware/README.md contains Nevyn's hardware checklist: flash, then
