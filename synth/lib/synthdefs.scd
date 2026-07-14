@@ -1,6 +1,7 @@
-// Placeholder SynthDefs with the right SHAPE — real sound design is
-// docs/plans/patch-design.md's job. Everything routes through \chaosMaster,
-// whose filter/reverb/volume the pots drive (see engine.scd).
+// SynthDefs: the settled atmosphere drones (auditioned by ear 07-15, see
+// docs/plans/patch-design.md) + the interactive voices (\chaosKeys is still a
+// placeholder — the main-instrument build iterates it next). Everything routes
+// through \chaosMaster.
 (
 ~chaosDefineSynths = { |s|
 
@@ -16,22 +17,81 @@
 		Out.ar(out, Pan2.ar(sig * env * amp, pan));
 	}).add;
 
-	// Idle drone: warm evolving pad on an A-minor-pentatonic chord, so it can
-	// never clash with the button scale. targetAmp/fadeTime drive the idle
-	// crossfade (10 s in, 1 s duck) from the engine.
-	SynthDef(\chaosPad, { |out = 0, targetAmp = 0, fadeTime = 10|
-		var amp = VarLag.kr(targetAmp, fadeTime);
-		var notes = [45, 52, 57, 60, 64]; // A2 E3 A3 C4 E4
-		var sig = Mix.fill(notes.size, { |i|
-			var f = notes[i].midicps;
-			var drift = LFNoise2.kr(0.07 + (0.013 * i), 0.003, 1); // slow detune wander
+	// The idle drones. Shared protocol: targetAmp/fadeTime (VarLag) so the
+	// engine can duck and raise them any number of times; \notes (5 midinotes)
+	// is the current chord from the harmonic brain. No doneAction — the engine
+	// frees the old drone after an atmosphere crossfade.
+
+	// Day (09-17): tape-warble saw blooms + rare high twinkles. Each voice
+	// re-pitches only while silent (bloom near zero), so chord drift arrives
+	// as reborn notes — a pause, then the new key — never a bend.
+	SynthDef(\chaosPadDay, { |out = 0, targetAmp = 0, fadeTime = 10|
+		var amp = VarLag.kr(targetAmp, fadeTime) * 0.24;
+		var notes = \notes.kr([45, 52, 57, 60, 64]);
+		var wow = 1 + (LFNoise2.kr(0.4) * 0.006);   // shared: the whole tape wobbles
+		var flutter = 1 + (LFNoise2.kr(7) * 0.0012);
+		var twinkTrig = Dust.kr(0.12);               // a sparkle every ~8 s
+		var twinkNote = Select.kr(TIRand.kr(0, 4, twinkTrig), notes) + 24;
+		var twinkle = SinOsc.ar(Latch.kr(twinkNote, twinkTrig).midicps)
+			* EnvGen.kr(Env.perc(0.01, 2.5, 0.05), twinkTrig);
+		var sig = Mix.fill(5, { |i|
+			var bloom = SinOsc.kr(0.04 + (0.011 * i), (i * 2.1) % 2pi).range(0, 1).squared;
+			var note = Latch.kr(notes[i], Impulse.kr(0) + (bloom < 0.004));
+			var f = note.midicps * wow * flutter;
 			Pan2.ar(
-				Saw.ar(f * drift) + Saw.ar(f / drift),
-				i.linlin(0, notes.size - 1, -0.6, 0.6)
-			) * (1 / (i + 1)).sqrt
+				Saw.ar(f * 1.0018) + Saw.ar(f * 0.9982),
+				i.linlin(0, 4, -0.6, 0.6)
+			) * bloom * (1 / (i + 1)).sqrt
 		});
-		sig = MoogFF.ar(sig, LFNoise2.kr(0.05).exprange(350, 1400), 1.2);
-		Out.ar(out, sig * 0.11 * amp);
+		sig = MoogFF.ar(sig, LFNoise2.kr(0.06).exprange(450, 1700), 1.1);
+		sig = sig + Pan2.ar(twinkle, TRand.kr(-0.7, 0.7, twinkTrig));
+		sig = sig + PinkNoise.ar(0.004 ! 2); // smooth tape hiss (no impulse crackle)
+		Out.ar(out, sig * amp);
+	}).add;
+
+	// Golden (17-20): warm glass with a deliberate microtonal shimmer pair and
+	// slow sunset filter sweeps. Chord drift GLIDES over 12 s (this pad's
+	// settled preference — rebirth belongs to Day/Deep).
+	SynthDef(\chaosPadGolden, { |out = 0, targetAmp = 0, fadeTime = 10|
+		var amp = VarLag.kr(targetAmp, fadeTime) * 0.26;
+		var notes = \notes.kr([45, 52, 57, 60, 64]);
+		var sig = Mix.fill(5, { |i|
+			var f = Lag.kr(notes[i], 12).midicps;
+			var bloom = SinOsc.kr(0.05 + (0.013 * i), (i * 1.7) % 2pi).range(0.1, 1);
+			var v = (LFTri.ar(f) * 0.4)
+				+ (LFTri.ar(f * 1.006) * 0.25)   // ~10 cent shimmer
+				+ (SinOsc.ar(f * 2.01, 0, 0.14)) // barely-sharp octave
+				+ (Saw.ar(f * 0.997) * 0.1);     // faint warm glow
+			Pan2.ar(v, LFNoise2.kr(0.05 + (0.01 * i)).range(-0.5, 0.5))
+				* bloom * (1 / (i + 1)).sqrt
+		});
+		sig = MoogFF.ar(sig, SinOsc.kr(0.03).exprange(700, 2600), 1.0);
+		sig = sig + (DelayC.ar(sig, 0.05, SinOsc.kr(0.11, [0, pi]).range(0.012, 0.02)) * 0.4);
+		sig = sig + PinkNoise.ar(0.003 ! 2);
+		Out.ar(out, sig * amp);
+	}).add;
+
+	// Deep (01-09, and Night's stopgap while its own pad is unresolved):
+	// Day's warmth an octave down, darker filter, slower blooms, gentle sub.
+	// Rebirth drift like Day.
+	SynthDef(\chaosPadDeep, { |out = 0, targetAmp = 0, fadeTime = 10|
+		var amp = VarLag.kr(targetAmp, fadeTime) * 0.2;
+		var notes = \notes.kr([45, 52, 57, 60, 64]);
+		var wow = 1 + (LFNoise2.kr(0.3) * 0.005);
+		var sig = Mix.fill(5, { |i|
+			var bloom = SinOsc.kr(0.03 + (0.008 * i), (i * 2.3) % 2pi).range(0, 1).squared;
+			var note = Latch.kr(notes[i] - 12, Impulse.kr(0) + (bloom < 0.004));
+			var f = note.midicps * wow;
+			Pan2.ar(
+				Saw.ar(f * 1.0012) + Saw.ar(f * 0.9988),
+				i.linlin(0, 4, -0.5, 0.5)
+			) * bloom * (1 / (i + 1)).sqrt
+		});
+		var sub = SinOsc.ar(Lag.kr(notes[0] - 12, 8).midicps)
+			* LFNoise2.kr(0.05).range(0.2, 0.5) * 0.6;
+		sig = MoogFF.ar(sig, LFNoise2.kr(0.04).exprange(250, 800), 1.2);
+		sig = sig + Pan2.ar(sub, 0) + PinkNoise.ar(0.003 ! 2);
+		Out.ar(out, sig * amp);
 	}).add;
 
 	// Master chain: filter -> reverb -> volume -> limiter. The limiter is

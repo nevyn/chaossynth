@@ -44,12 +44,16 @@ tools/smoke-test.sh
 | `UNMAPPED: note/cc N (logged once)` | input not in mapping.json — a mapping bug to fix, never a crash |
 | `SAFETY: max-hold release` | a NoteOff never arrived (yanked cable); voice freed after 5 min |
 | `IDLE: ... drone fading in` / `... ducking` | boots straight into the ambient layer; back 90 s after the last input; any input ducks it |
+| `ATMOSPHERE: day/golden/night/deep (pad ...)` | wall-clock slot changed (09/17/20/01); drone crossfades to that slot's pad. Night borrows Deep's pad for now |
+| `DRIFT: chord -> A/C/G/D` | harmonic drift, every 2.5 min — the drone re-voices so nearby camps never hear the same minute twice |
+| `CLOCK: untrusted` | `CHAOS_CLOCK_UNTRUSTED=1` set (no-RTC power-cut fallback): Day palette at reduced volume |
 | `CHAOSSYNTH FATAL` | exiting on purpose so systemd restarts us |
 
 Env knobs (mostly for tests): `CHAOS_PLATFORM=pi|mac`, `CHAOS_IDLE_TIMEOUT`,
 `CHAOS_MAX_HOLD` (seconds), `CHAOS_ALSA_DEV` (Pi jack device, default
 `hw:Headphones`), `CHAOS_MIDI_SOURCE` (accept one extra MIDI source name
-besides "Chaossynth").
+besides "Chaossynth"), `CHAOS_FAKE_HOUR` (0-23, pin the atmosphere clock),
+`CHAOS_CLOCK_UNTRUSTED=1` (force the no-RTC safe fallback).
 
 ## Simulate mode / IAC
 
