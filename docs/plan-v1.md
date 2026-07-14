@@ -10,7 +10,7 @@ Signal chain: panel (RP2350-Zero) → USB MIDI → Pi 4 (SuperCollider) → spea
 
 | # | Plan | Builds | Parallel? | Status |
 |---|------|--------|-----------|--------|
-| 1 | [plans/firmware.md](plans/firmware.md) | firmware/ | yes | in progress 07-14 |
+| 1 | [plans/firmware.md](plans/firmware.md) | firmware/ | yes | done 07-14 (hardware checklist pending, see firmware/README.md) |
 | 2 | [plans/layout-tool.md](plans/layout-tool.md) | layout-tool/ | yes | in progress 07-14 |
 | 3 | [plans/pi-image.md](plans/pi-image.md) | pi-image/ | yes | in progress 07-14 |
 | 4 | [plans/synth-engine.md](plans/synth-engine.md) | synth/ | yes | in progress 07-14 |
