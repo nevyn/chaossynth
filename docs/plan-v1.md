@@ -10,11 +10,11 @@ Signal chain: panel (RP2350-Zero) → USB MIDI → Pi 4 (SuperCollider) → spea
 
 | # | Plan | Builds | Parallel? | Status |
 |---|------|--------|-----------|--------|
-| 1 | [plans/firmware.md](plans/firmware.md) | firmware/ | yes | not started |
-| 2 | [plans/layout-tool.md](plans/layout-tool.md) | layout-tool/ | yes | not started |
-| 3 | [plans/pi-image.md](plans/pi-image.md) | pi-image/ | yes | not started |
-| 4 | [plans/synth-engine.md](plans/synth-engine.md) | synth/ | yes | not started |
-| 5 | [plans/patch-design.md](plans/patch-design.md) | synth sounds | after brainstorm + #4 | awaiting brainstorm |
+| 1 | [plans/firmware.md](plans/firmware.md) | firmware/ | yes | in progress 07-14 |
+| 2 | [plans/layout-tool.md](plans/layout-tool.md) | layout-tool/ | yes | in progress 07-14 |
+| 3 | [plans/pi-image.md](plans/pi-image.md) | pi-image/ | yes | in progress 07-14 |
+| 4 | [plans/synth-engine.md](plans/synth-engine.md) | synth/ | yes | in progress 07-14 |
+| 5 | [plans/patch-design.md](plans/patch-design.md) | synth sounds | after brainstorm + #4 | brainstorm in progress 07-14 |
 | 6 | [plans/led-sync.md](plans/led-sync.md) | — | PARKED | stretch |
 
 1–4 are independent BECAUSE they all build against
