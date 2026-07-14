@@ -14,7 +14,7 @@ Signal chain: panel (RP2350-Zero) → USB MIDI → Pi 4 (SuperCollider) → spea
 | 2 | [plans/layout-tool.md](plans/layout-tool.md) | layout-tool/ | yes | done 07-14 (Chrome FS round-trip + simulate on Nevyn's bench, see layout-tool/README.md) |
 | 3 | [plans/pi-image.md](plans/pi-image.md) | pi-image/ | yes | done 07-14 (hardware runbook pending, see pi-image/README.md) |
 | 4 | [plans/synth-engine.md](plans/synth-engine.md) | synth/ | yes | in progress 07-14 |
-| 5 | [plans/patch-design.md](plans/patch-design.md) | synth sounds | after brainstorm + #4 | brainstorm in progress 07-14 |
+| 5 | [plans/patch-design.md](plans/patch-design.md) | synth sounds | after brainstorm + #4 | brief ready 07-14, sound build next |
 | 6 | [plans/led-sync.md](plans/led-sync.md) | — | PARKED | stretch |
 
 1–4 are independent BECAUSE they all build against
