@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "image": "layout-tool/panel.jpg",
+  "hardware": {
+    "i2c": { "sda": 4, "scl": 5 },
+    "expanders": [32],
+    "muxes": [{ "s0": 6, "s1": 7, "s2": 8, "adc": 26 }]
+  },
+  "controls": [
+    { "id": 0,  "kind": "button", "label": "root A",       "pos": null, "wiring": { "source": "pico", "gpio": 2 },                "midi": { "type": "note", "note": 0 },  "synth": { "role": "root", "degree": 0 } },
+    { "id": 1,  "kind": "button", "label": "root C",       "pos": null, "wiring": { "source": "pico", "gpio": 3 },                "midi": { "type": "note", "note": 1 },  "synth": { "role": "root", "degree": 1 } },
+    { "id": 2,  "kind": "button", "label": "root D",       "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 0 },  "midi": { "type": "note", "note": 2 },  "synth": { "role": "root", "degree": 2 } },
+    { "id": 3,  "kind": "button", "label": "root E",       "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 1 },  "midi": { "type": "note", "note": 3 },  "synth": { "role": "root", "degree": 3 } },
+    { "id": 4,  "kind": "button", "label": "root G",       "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 2 },  "midi": { "type": "note", "note": 4 },  "synth": { "role": "root", "degree": 4 } },
+    { "id": 5,  "kind": "button", "label": "pluck low",    "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 3 },  "midi": { "type": "note", "note": 5 },  "synth": { "role": "voice" } },
+    { "id": 6,  "kind": "button", "label": "pluck",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 4 },  "midi": { "type": "note", "note": 6 },  "synth": { "role": "voice" } },
+    { "id": 7,  "kind": "button", "label": "pluck",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 5 },  "midi": { "type": "note", "note": 7 },  "synth": { "role": "voice" } },
+    { "id": 8,  "kind": "button", "label": "pluck",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 6 },  "midi": { "type": "note", "note": 8 },  "synth": { "role": "voice" } },
+    { "id": 9,  "kind": "button", "label": "pluck",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 7 },  "midi": { "type": "note", "note": 9 },  "synth": { "role": "voice" } },
+    { "id": 10, "kind": "button", "label": "pluck",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 8 },  "midi": { "type": "note", "note": 10 }, "synth": { "role": "voice" } },
+    { "id": 11, "kind": "button", "label": "pluck high",   "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 9 },  "midi": { "type": "note", "note": 11 }, "synth": { "role": "voice", "degree": 16 } },
+    { "id": 12, "kind": "button", "label": "BASS wobble",  "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 10 }, "midi": { "type": "note", "note": 12 }, "synth": { "role": "bass" } },
+    { "id": 13, "kind": "button", "label": "hold: echo",   "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 11 }, "midi": { "type": "note", "note": 13 }, "synth": { "role": "hold_fx", "fx": "delay" } },
+    { "id": 14, "kind": "button", "label": "hold: verb",   "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 12 }, "midi": { "type": "note", "note": 14 }, "synth": { "role": "hold_fx", "fx": "reverb" } },
+    { "id": 15, "kind": "button", "label": "thunder",      "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 13 }, "midi": { "type": "note", "note": 15 }, "synth": { "role": "oneshot", "slot": 0 } },
+    { "id": 16, "kind": "button", "label": "whale",        "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 14 }, "midi": { "type": "note", "note": 16 }, "synth": { "role": "oneshot", "slot": 1 } },
+    { "id": 17, "kind": "button", "label": "bell swell",   "pos": null, "wiring": { "source": "expander", "chip": 0, "pin": 15 }, "midi": { "type": "note", "note": 17 }, "synth": { "role": "oneshot", "slot": 2 } },
+    { "id": 18, "kind": "button", "label": "chop (stub)",  "pos": null, "wiring": { "source": "pico", "gpio": 0 },                "midi": { "type": "note", "note": 18 }, "synth": { "role": "chop", "slot": 0 } },
+    { "id": 0,  "kind": "pot",    "label": "filter",       "pos": null, "wiring": { "source": "pico_adc", "gpio": 27 },           "midi": { "type": "cc", "cc": 20 },     "synth": { "role": "macro", "param": "filter" } },
+    { "id": 1,  "kind": "pot",    "label": "space",        "pos": null, "wiring": { "source": "pico_adc", "gpio": 28 },           "midi": { "type": "cc", "cc": 21 },     "synth": { "role": "macro", "param": "space" } },
+    { "id": 2,  "kind": "pot",    "label": "echo",         "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 0 },    "midi": { "type": "cc", "cc": 22 },     "synth": { "role": "macro", "param": "echo" } },
+    { "id": 3,  "kind": "pot",    "label": "phaser",       "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 1 },    "midi": { "type": "cc", "cc": 23 },     "synth": { "role": "macro", "param": "phaser" } },
+    { "id": 4,  "kind": "pot",    "label": "energy",       "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 2 },    "midi": { "type": "cc", "cc": 24 },     "synth": { "role": "macro", "param": "energy" } },
+    { "id": 5,  "kind": "pot",    "label": "wobble",       "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 3 },    "midi": { "type": "cc", "cc": 25 },     "synth": { "role": "macro", "param": "wobble" } },
+    { "id": 6,  "kind": "pot",    "label": "timbre",       "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 4 },    "midi": { "type": "cc", "cc": 26 },     "synth": { "role": "macro", "param": "timbre" } },
+    { "id": 7,  "kind": "pot",    "label": "chaos",        "pos": null, "wiring": { "source": "mux", "mux": 0, "channel": 5 },    "midi": { "type": "cc", "cc": 27 },     "synth": { "role": "macro", "param": "chaos" } }
+  ]
+}

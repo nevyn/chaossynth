@@ -7,14 +7,52 @@
 
 	// Per-button voice: soft keys/pluck. Gated so NoteOff (or the safety
 	// release) always works; frees itself when the release tail ends.
-	SynthDef(\chaosKeys, { |out = 0, freq = 220, amp = 0.25, gate = 1, pan = 0|
+	// bright (0..1, from the timbre pot) morphs soft keys -> glassy.
+	SynthDef(\chaosKeys, { |out = 0, freq = 220, amp = 0.25, gate = 1, pan = 0, bright = 0.5|
 		var env = EnvGen.kr(Env.adsr(0.003, 0.35, 0.4, 1.2), gate, doneAction: 2);
 		var strike = EnvGen.kr(Env.perc(0.001, 0.25));
 		var tone = SinOsc.ar(freq)
 			+ (LFTri.ar(freq * 1.002) * 0.4)
-			+ (SinOsc.ar(freq * 2) * 0.2 * strike);
-		var sig = LPF.ar(tone, (freq * 6).clip(400, 9000));
+			+ (SinOsc.ar(freq * 2) * (0.1 + (bright * 0.35)) * strike)
+			+ (SinOsc.ar(freq * 4.02) * bright * 0.12 * strike);
+		var sig = LPF.ar(tone, (freq * bright.linexp(0, 1, 3, 12)).clip(400, 12000));
 		Out.ar(out, Pan2.ar(sig * env * amp, pan));
+	}).add;
+
+	// Bass gesture (role "bass"): held LFO-wobble stab on the chord root.
+	// rate in Hz from the wobble pot; 2nd harmonic so small speakers read it.
+	SynthDef(\chaosBass, { |out = 0, freq = 55, gate = 1, amp = 0.5, rate = 4|
+		var env = EnvGen.kr(Env.asr(0.03, 1, 0.5), gate, doneAction: 2);
+		var lfo = SinOsc.kr(Lag.kr(rate, 0.4)).range(0, 1);
+		var sig = (Saw.ar(freq * [1, 1.006]).sum * 0.5)
+			+ SinOsc.ar(freq, 0, 0.7)
+			+ SinOsc.ar(freq * 2, 0, 0.25);
+		sig = MoogFF.ar(sig, lfo.linexp(0, 1, 90, 2200), 2.2);
+		Out.ar(out, Pan2.ar(sig * env * amp * 0.8, 0));
+	}).add;
+
+	// One-shots (role "oneshot", slots 0-2). All self-freeing.
+	SynthDef(\chaosThunder, { |out = 0, amp = 0.6|
+		var env = EnvGen.kr(Env.perc(0.04, 4.5, 1, -5), doneAction: 2);
+		var rumble = LPF.ar(BrownNoise.ar(1 ! 2), LFNoise2.kr(2).exprange(80, 400));
+		var crack = HPF.ar(WhiteNoise.ar(0.3), 1200) * EnvGen.kr(Env.perc(0.001, 0.12));
+		Out.ar(out, (rumble + Pan2.ar(crack, Rand(-0.3, 0.3))) * env * amp);
+	}).add;
+
+	SynthDef(\chaosWhale, { |out = 0, amp = 0.4|
+		var env = EnvGen.kr(Env.new([0, 1, 0.7, 0], [0.4, 2.2, 1.6], \sin), doneAction: 2);
+		var f = EnvGen.kr(Env.new([180, 320, 240], [1.8, 2.4], \exp));
+		var vib = SinOsc.kr(4.5, 0, 6);
+		var sig = SinOsc.ar(f + vib) + SinOsc.ar((f + vib) * 2.01, 0, 0.3);
+		Out.ar(out, Pan2.ar(sig * env * amp * 0.5, Rand(-0.4, 0.4)));
+	}).add;
+
+	SynthDef(\chaosBellSwell, { |out = 0, freq = 440, amp = 0.5|
+		var exc = PinkNoise.ar(EnvGen.kr(Env.new([0, 1, 0], [1.2, 0.4])) * 0.02);
+		var sig = Klank.ar(`[[1, 2.756, 5.404, 8.933], [1, 0.6, 0.4, 0.25], [2.5, 2, 1.5, 1]],
+			exc, freqscale: freq);
+		var env = EnvGen.kr(Env.new([0, 1, 0], [1.4, 3.2], \sin), doneAction: 2);
+		Out.ar(out, Pan2.ar(sig, Rand(-0.5, 0.5)) * env * amp);
 	}).add;
 
 	// The idle drones. Shared protocol: targetAmp/fadeTime (VarLag) so the
@@ -94,12 +132,31 @@
 		Out.ar(out, sig * amp);
 	}).add;
 
-	// Master chain: filter -> reverb -> volume -> limiter. The limiter is
-	// non-negotiable festival armor: whatever campers mash, never clip.
-	SynthDef(\chaosMaster, { |in, out = 0, cutoff = 12000, rq = 1.0, verbMix = 0.25, volDb = -6|
+	// Master chain: filter -> echo -> phaser -> reverb -> volume -> limiter.
+	// The limiter is non-negotiable festival armor: whatever campers mash,
+	// never clip. echoHold/verbHold are the hold_fx buttons — they compose
+	// with the pot values via max(), so a held button can't be undone by a pot.
+	SynthDef(\chaosMaster, { |in, out = 0, cutoff = 12000, rq = 1.0,
+		verbMix = 0.25, verbRoom = 0.8, echoMix = 0, echoFb = 0.35,
+		phaserDepth = 0, phaserRate = 0.3, echoHold = 0, verbHold = 0, volDb = -6|
 		var sig = In.ar(in, 2);
+		var em = max(echoMix.lag(0.3), echoHold.lag(0.3) * 0.6);
+		var ef = max(echoFb.lag(0.3), echoHold.lag(0.3) * 0.8).clip(0, 0.92);
+		var vm = max(verbMix.lag(0.1), verbHold.lag(1.5) * 0.85);
+		var echo, ph, lfo;
 		sig = RLPF.ar(sig, cutoff.lag(0.05).clip(60, 18000), rq.lag(0.05).clip(0.18, 1.0));
-		sig = FreeVerb2.ar(sig[0], sig[1], verbMix.lag(0.1), 0.8, 0.4);
+		// Feedback dub echo (unsynced for now; tempo lands with the beat work).
+		echo = LocalIn.ar(2);
+		echo = DelayC.ar((sig * em) + (echo * ef), 0.8, [0.42, 0.56]);
+		echo = LPF.ar(echo, 2500);
+		LocalOut.ar(echo);
+		sig = sig + echo;
+		// Phaser: 4 swept allpasses, mixed in by depth.
+		lfo = SinOsc.kr(phaserRate.lag(0.5), [0, pi/2]).range(0.0004, 0.006);
+		ph = sig;
+		4.do { ph = AllpassC.ar(ph, 0.01, lfo, 0) };
+		sig = sig + (ph * phaserDepth.lag(0.3));
+		sig = FreeVerb2.ar(sig[0], sig[1], vm, verbRoom.lag(0.3), 0.4);
 		sig = sig * volDb.lag(0.1).dbamp;
 		Out.ar(out, Limiter.ar(sig, 0.9));
 	}).add;

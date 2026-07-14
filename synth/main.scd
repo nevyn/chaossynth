@@ -15,7 +15,9 @@ s.options.memSize = 65536; // headroom for reverb + a panel full of voices
 (root +/+ "lib" +/+ "engine.scd").load;
 (root +/+ "lib" +/+ "midi.scd").load;
 
-~chaosMappingLoad.(root +/+ "mapping.json");
+// CHAOS_MAPPING: alternate mapping path for demos/tests (e.g. the roles demo
+// in auditions/) without touching the real mapping.json.
+~chaosMappingLoad.("CHAOS_MAPPING".getenv ?? { root +/+ "mapping.json" });
 if (~chaosMapping.isNil) {
 	"CHAOSSYNTH FATAL: mapping.json missing or refused at boot, cannot start".postln;
 	1.exit;
