@@ -33,11 +33,12 @@ the button build").
 1. **Harmonic brain** — one global `root + mode`. Every sound source quantizes
    through it; nobody can play outside it. Root changes retune the arp
    immediately and the drone glides over ~2 bars. Mode changes apply to new
-   notes only. At idle the brain drifts by itself: the chord walks A→C→G→D
-   every ~2.5 min, all voiced inside A minor pentatonic so overlapping
-   transitions stay consonant. Drift styles settled 07-15 by ear: Day/Deep
-   re-pitch each voice only while it is silent ("pause, then the new key");
-   Golden glides over 12 s. Never 4 s — too fast, audibly bendy.
+   notes only. At idle the brain drifts by itself: the chord walks the five
+   roots A C D E G every ~2.5 min — the same five chords the piano row picks
+   by degree, all voiced inside A minor pentatonic so overlapping transitions
+   stay consonant. Drift styles settled 07-15 by ear: Day/Deep re-pitch each
+   voice only while it is silent ("pause, then the new key"); Golden glides
+   over 12 s. Never 4 s — too fast, audibly bendy.
 2. **Energy** — a leaky integrator of input events (decay ~60 s) replacing the
    engine's binary idle/active flag (keep `CHAOS_IDLE_TIMEOUT` as the
    energy-zero point). Drives arp density, beat presence, drone duck. The arp
@@ -63,7 +64,18 @@ the button build").
 SETTLED by ear (synth/auditions/pad-picker.scd holds the settled synthdefs).
 **Night's idle pad is OPEN** — chord-on-repeat was annoying, the arp attempt
 read as "weird note hits"; tabled to prioritize the main instrument. Stopgap:
-use Deep's pad in the Night slot until revisited. Deep's volume/low-end caps (hardest 01–06)
+use Deep's pad in the Night slot until revisited. Also tabled 07-15: maybe
+reintroduce a 5th **Dawn** slot (06-10-ish, sparser than Day) later.
+
+### Build status (07-15 overnight)
+
+Implemented in the engine, verified by tools/roles-test.scd + smoke-test.sh:
+atmospheres + drift, role dispatch (`root`, `voice` w/ degree, `bass`,
+`hold_fx` incl. cc_momentary, `oneshot` slots 0-2 = thunder/whale/bell), all
+8 macro pots (energy is stored but unconsumed), master echo + phaser stages.
+Try it: `CHAOS_MAPPING=auditions/roles-demo.json ./run.sh`. Still to build:
+energy integrator + beats, chops/sample banks, tempo-synced echo, pot
+relaxation, 10-min atmosphere crossfades, Night pad, mode switch, phone. Deep's volume/low-end caps (hardest 01–06)
 are the sound-policy answer — sub reads cozy at the panel but carries across a
 camp at night, so it gets level-capped there, not removed. Verify the actual
 Borderland quiet hours and adjust boundaries (TBD).

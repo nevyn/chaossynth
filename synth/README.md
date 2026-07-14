@@ -47,13 +47,20 @@ tools/smoke-test.sh
 | `ATMOSPHERE: day/golden/night/deep (pad ...)` | wall-clock slot changed (09/17/20/01); drone crossfades to that slot's pad. Night borrows Deep's pad for now |
 | `DRIFT: chord -> A/C/G/D` | harmonic drift, every 2.5 min — the drone re-voices so nearby camps never hear the same minute twice |
 | `CLOCK: untrusted` | `CHAOS_CLOCK_UNTRUSTED=1` set (no-RTC power-cut fallback): Day palette at reduced volume |
+| `ROOT: chord -> A/C/D/E/G` | a piano-row button moved the harmonic center (with a confirmation ping) |
+| `BASS: root N wobble R Hz` | the bass button, LFO rate from the wobble pot |
+| `HOLDFX: delay/reverb ON/off` | a hold-FX button engaged/released the dub echo or reverb swell |
+| `ONESHOT: slot N` | thunder / whale / bell swell fired |
+| `MACRO: param = value` | a pot with a `synth{}` blob moved its macro (filter/space/echo/phaser/energy/wobble/timbre/chaos) |
+| `ROLE: '...' not implemented yet` | mapping assigns a role the engine doesn't know (logged once) |
 | `CHAOSSYNTH FATAL` | exiting on purpose so systemd restarts us |
 
 Env knobs (mostly for tests): `CHAOS_PLATFORM=pi|mac`, `CHAOS_IDLE_TIMEOUT`,
 `CHAOS_MAX_HOLD` (seconds), `CHAOS_ALSA_DEV` (Pi jack device, default
 `hw:Headphones`), `CHAOS_MIDI_SOURCE` (accept one extra MIDI source name
 besides "Chaossynth"), `CHAOS_FAKE_HOUR` (0-23, pin the atmosphere clock),
-`CHAOS_CLOCK_UNTRUSTED=1` (force the no-RTC safe fallback).
+`CHAOS_CLOCK_UNTRUSTED=1` (force the no-RTC safe fallback), `CHAOS_MAPPING`
+(alternate mapping.json path, e.g. `auditions/roles-demo.json`).
 
 ## Simulate mode / IAC
 
