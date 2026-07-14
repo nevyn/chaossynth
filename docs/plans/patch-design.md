@@ -33,7 +33,9 @@ the button build").
 1. **Harmonic brain** — one global `root + mode`. Every sound source quantizes
    through it; nobody can play outside it. Root changes retune the arp
    immediately and the drone glides over ~2 bars. Mode changes apply to new
-   notes only.
+   notes only. At idle the brain drifts by itself: root steps to a neighbor
+   every 2–4 min (always a glide, never a jump), so a nearby camp never hears
+   the same minute twice.
 2. **Energy** — a leaky integrator of input events (decay ~60 s) replacing the
    engine's binary idle/active flag (keep `CHAOS_IDLE_TIMEOUT` as the
    energy-zero point). Drives arp density, beat presence, drone duck. The arp
@@ -48,15 +50,16 @@ the button build").
 
 ### Atmospheres (first guess — tune on site)
 
-| Name | Hours | Character | BPM | Beat when active | One-shot bank |
+| Name | Hours | Pad (audition seed) | BPM | Beat when active | One-shot bank |
 |---|---|---|---|---|---|
-| Dawn | 06–10 | sparsest warm pad, slow arp | 72 | none | hushed bells |
-| Day | 10–17 | playful toybox, bright plucks | 96 | soft percussion | bells, whale, water |
-| Golden | 17–20 | dub techno, deep chords | 122 | 4/4 kick + skank | dub stabs, sirens |
-| Night | 20–24 | chill breakcore, wobble bass | 170 (half-time feel) | chopped breaks | amen slices, sub drops |
-| Afterhours | 00–06 | darkest quiet ambient, low shelf down | 60 | none | soft crackle swells |
+| Day | 09–17 | tape-warble blooms + twinkles (A) | 96 | soft percussion | bells, whale, water |
+| Golden | 17–20 | warm glass, sunset sweeps (B) | 122 | 4/4 kick + skank | dub stabs, sirens |
+| Night | 20–01 | dub drone, big breathing sub (C) | 170 (half-time feel) | chopped breaks | amen slices, sub drops |
+| Deep | 01–09 | Day's warmth an octave down + gentle sub (D) | 66 | none | soft crackle swells |
 
-Afterhours volume/low-end caps are the sound-policy answer; verify the actual
+(Collapsed to 4 slots, Nevyn 07-15.) Deep's volume/low-end caps (hardest 01–06)
+are the sound-policy answer — sub reads cozy at the panel but carries across a
+camp at night, so it gets level-capped there, not removed. Verify the actual
 Borderland quiet hours and adjust boundaries (TBD).
 
 **Clock integrity (required):** the Pi 4 has no RTC and the field has no NTP;

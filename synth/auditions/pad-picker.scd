@@ -1,17 +1,18 @@
-// Pad audition rig: click layout-tool Simulate buttons to A/B the pad
-// candidates. Runs INSTEAD of the engine (stop run.sh first — otherwise its
-// plucks play over everything). Listens to ALL MIDI sources, so the layout
-// tool's IAC bus works with no env vars.
+// Pad audition rig, round 2: click layout-tool Simulate buttons to A/B the
+// atmosphere pads. Runs INSTEAD of the engine (stop run.sh first). Listens to
+// ALL MIDI sources, so the layout tool's IAC bus works with no env vars.
 //
 // Run:  /Applications/SuperCollider.app/Contents/MacOS/sclang synth/auditions/pad-picker.scd
 //
-//   button 0 -> pad A  tape-warble saws  (Day: BoC, whole chord bends like tape)
-//   button 1 -> pad B  glass organ bloom (Dawn/Afterhours: voices breathe in/out)
-//   button 2 -> pad C  dub-techno drone  (Golden: chord swells into dark echo)
-//   button 3 -> silence (or press the sounding pad's button again)
+//   button 0 -> Day    (09-17)  tape-warble blooms + twinkles
+//   button 1 -> Golden (17-20)  warm glass, sunset filter sweeps
+//   button 2 -> Night  (20-01)  dub drone, breathing sub, hotter echo
+//   button 3 -> Deep   (01-09)  Day's warmth an octave down + gentle sub
+//   button 4 -> silence (or press the sounding pad's button again)
 //   pot 0 (CC 20) -> master filter cutoff
 //
-// Pressing a different pad crossfades via the pads' own attack/release.
+// The sounding pad's root drifts to a neighbor every 2.5 min (A->C->G->D),
+// gliding over ~4 s — the anti-annoyance behavior the real drone will have.
 (
 var pads;
 
@@ -25,60 +26,95 @@ MIDIIn.connectAll;
 
 s.waitForBoot({
 	fork {
-		SynthDef(\padA, { |out = 0, gate = 1, amp = 0.22|
-			var notes = [45, 52, 57, 60, 64]; // A2 E3 A3 C4 E4
-			var wow = 1 + (LFNoise2.kr(0.4) * 0.006);   // shared: whole tape wobbles together
+		// Day: voices bloom fully in and out (never one endless sustain), rare
+		// high twinkles, smooth hiss only — the Dust crackle read as clicks.
+		SynthDef(\padDay, { |out = 0, gate = 1, amp = 0.24, root = 45|
+			var r = root.lag(4);
+			var offs = [0, 7, 12, 15, 19];
+			var wow = 1 + (LFNoise2.kr(0.4) * 0.006);
 			var flutter = 1 + (LFNoise2.kr(7) * 0.0012);
 			var env = EnvGen.kr(Env.asr(3, 1, 2.5), gate, doneAction: 2);
-			var sig = Mix.fill(notes.size, { |i|
-				var f = notes[i].midicps * wow * flutter;
-				var breath = LFNoise2.kr(0.09 + (0.017 * i)).range(0.4, 1);
+			var twinkTrig = Dust.kr(0.12); // a sparkle every ~8 s
+			var twinkNote = r + 24 + TChoose.kr(twinkTrig, [0, 3, 7, 12]);
+			var twinkle = SinOsc.ar(twinkNote.midicps)
+				* EnvGen.kr(Env.perc(0.01, 2.5, 0.05), twinkTrig);
+			var sig = Mix.fill(5, { |i|
+				var f = (r + offs[i]).midicps * wow * flutter;
+				var bloom = SinOsc.kr(0.04 + (0.011 * i), (i * 2.1) % 2pi).range(0, 1).squared;
 				Pan2.ar(
 					Saw.ar(f * 1.0018) + Saw.ar(f * 0.9982),
-					i.linlin(0, notes.size - 1, -0.6, 0.6)
-				) * breath * (1 / (i + 1)).sqrt
+					i.linlin(0, 4, -0.6, 0.6)
+				) * bloom * (1 / (i + 1)).sqrt
 			});
 			sig = MoogFF.ar(sig, LFNoise2.kr(0.06).exprange(450, 1700), 1.1);
-			sig = sig + PinkNoise.ar(0.006 ! 2);                          // tape hiss
-			sig = sig + Pan2.ar(BPF.ar(Dust2.ar(4), 3500, 0.6) * 0.8, 0); // vinyl crackle
+			sig = sig + Pan2.ar(twinkle, TRand.kr(-0.7, 0.7, twinkTrig));
+			sig = sig + PinkNoise.ar(0.004 ! 2);
 			Out.ar(out, sig * env * amp);
 		}).add;
 
-		SynthDef(\padB, { |out = 0, gate = 1, amp = 0.3|
-			var notes = [45, 52, 57, 60, 64];
-			var wow = 1 + (LFNoise2.kr(0.3) * 0.003);
+		// Golden: the glass bloom warmed up — a saw glowing under the triangles,
+		// Am7 voicing, slow sunset filter sweeps.
+		SynthDef(\padGolden, { |out = 0, gate = 1, amp = 0.26, root = 45|
+			var r = root.lag(4);
+			var offs = [0, 7, 10, 12, 19];
+			var wow = 1 + (LFNoise2.kr(0.25) * 0.004);
 			var env = EnvGen.kr(Env.asr(4, 1, 3), gate, doneAction: 2);
-			var sig = Mix.fill(notes.size, { |i|
-				var f = notes[i].midicps * wow;
+			var sig = Mix.fill(5, { |i|
+				var f = (r + offs[i]).midicps * wow;
 				var bloom = SinOsc.kr(0.05 + (0.013 * i), (i * 1.7) % 2pi).range(0.1, 1);
-				var v = (LFTri.ar(f) * 0.5) + SinOsc.ar(f * 2, 0, 0.15)
-					+ SinOsc.ar(f * 4, 0, 0.05 * bloom);
+				var v = (LFTri.ar(f) * 0.4) + (Saw.ar(f * 1.003) * 0.18)
+					+ SinOsc.ar(f * 2, 0, 0.12);
 				Pan2.ar(v, LFNoise2.kr(0.05 + (0.01 * i)).range(-0.5, 0.5))
 					* bloom * (1 / (i + 1)).sqrt
 			});
-			sig = LPF.ar(sig, 2800);
+			sig = MoogFF.ar(sig, SinOsc.kr(0.03).exprange(700, 2600), 1.0);
 			sig = sig + (DelayC.ar(sig, 0.05, SinOsc.kr(0.11, [0, pi]).range(0.012, 0.02)) * 0.4);
 			sig = sig + PinkNoise.ar(0.003 ! 2);
 			Out.ar(out, sig * env * amp);
 		}).add;
 
-		SynthDef(\padC, { |out = 0, gate = 1, amp = 0.3|
+		// Night: more energy + bass — brighter stab peak, hotter echo, and a sub
+		// that swells up AFTER each chord (breathes against it).
+		SynthDef(\padNight, { |out = 0, gate = 1, amp = 0.3, root = 45|
+			var r = root.lag(4);
 			var env = EnvGen.kr(Env.asr(0.5, 1, 3), gate, doneAction: 2);
-			var trig = Impulse.kr(1 / 3.6);               // a chord swell every ~3.6 s
-			var chordEnv = EnvGen.kr(Env.perc(0.02, 1.4), trig);
-			var notes = [57, 60, 64, 67];                 // Am7 stab
-			var stab = Mix(notes.collect { |n|
-				Saw.ar(n.midicps * [0.9985, 1.0015]).sum * 0.12
+			var trig = Impulse.kr(1 / 3.2);
+			var chordEnv = EnvGen.kr(Env.perc(0.02, 1.6), trig);
+			var subEnv = EnvGen.kr(Env.new([0, 0, 1, 0], [0.5, 0.7, 1.8], \sin), trig);
+			var offs = [12, 15, 19, 22]; // Am7 above the root
+			var stab = Mix(offs.collect { |o|
+				Saw.ar((r + o).midicps * [0.9985, 1.0015]).sum * 0.12
 			});
-			var sub = SinOsc.ar(55) * LFNoise2.kr(0.07).range(0.25, 0.5); // A1 breath
+			var sub = SinOsc.ar((r - 12).midicps) * subEnv * 0.55;
 			var echoL, echoR, mix;
-			stab = RLPF.ar(stab, chordEnv.linexp(0, 1, 250, 2400), 0.5) * chordEnv;
-			echoL = CombC.ar(stab, 1.0, 0.57, 7);
-			echoR = CombC.ar(stab, 1.0, 0.38, 7);
-			mix = LPF.ar([stab + (echoL * 0.7), stab + (echoR * 0.7)], 1800); // dark tape echo
-			mix = FreeVerb2.ar(mix[0], mix[1], 0.45, 0.9, 0.5);
-			mix = mix + Pan2.ar(sub * 0.5, 0) + PinkNoise.ar(0.005 ! 2);
+			stab = RLPF.ar(stab, chordEnv.linexp(0, 1, 300, 3200), 0.45) * chordEnv;
+			echoL = CombC.ar(stab, 1.0, 0.53, 9);
+			echoR = CombC.ar(stab, 1.0, 0.35, 9);
+			mix = LPF.ar([stab + (echoL * 0.85), stab + (echoR * 0.85)], 2000);
+			mix = FreeVerb2.ar(mix[0], mix[1], 0.45, 0.92, 0.5);
+			mix = mix + Pan2.ar(sub, 0) + PinkNoise.ar(0.004 ! 2);
 			Out.ar(out, mix * env * amp);
+		}).add;
+
+		// Deep: Day's character dropped an octave, darker filter, slower blooms,
+		// gentle sub sine. (In the installation this slot is also level-capped.)
+		SynthDef(\padDeep, { |out = 0, gate = 1, amp = 0.2, root = 45|
+			var r = root.lag(6);
+			var offs = [-12, -5, 0, 3, 7];
+			var wow = 1 + (LFNoise2.kr(0.3) * 0.005);
+			var env = EnvGen.kr(Env.asr(5, 1, 4), gate, doneAction: 2);
+			var sig = Mix.fill(5, { |i|
+				var f = (r + offs[i]).midicps * wow;
+				var bloom = SinOsc.kr(0.03 + (0.008 * i), (i * 2.3) % 2pi).range(0, 1).squared;
+				Pan2.ar(
+					Saw.ar(f * 1.0012) + Saw.ar(f * 0.9988),
+					i.linlin(0, 4, -0.5, 0.5)
+				) * bloom * (1 / (i + 1)).sqrt
+			});
+			var sub = SinOsc.ar((r - 12).midicps) * LFNoise2.kr(0.05).range(0.2, 0.5) * 0.6;
+			sig = MoogFF.ar(sig, LFNoise2.kr(0.04).exprange(250, 800), 1.2);
+			sig = sig + Pan2.ar(sub, 0) + PinkNoise.ar(0.003 ! 2);
+			Out.ar(out, sig * env * amp);
 		}).add;
 
 		SynthDef(\pickerMaster, { |in, out = 0, cutoff = 18000|
@@ -95,10 +131,23 @@ s.waitForBoot({
 		~currentName = nil;
 
 		pads = [
-			[\padA, "A — tape-warble saws (Day)"],
-			[\padB, "B — glass organ bloom (Dawn/Afterhours)"],
-			[\padC, "C — dub-techno drone (Golden)"]
+			[\padDay,    "Day (09-17) — tape-warble blooms + twinkles"],
+			[\padGolden, "Golden (17-20) — warm glass, sunset sweeps"],
+			[\padNight,  "Night (20-01) — dub drone, breathing sub"],
+			[\padDeep,   "Deep (01-09) — dark warmth + gentle sub"]
 		];
+
+		// Root drift: A -> C -> G -> D, every 2.5 min, glide not jump.
+		~roots = [45, 48, 43, 50];
+		~ri = 0;
+		SystemClock.sched(150, {
+			~ri = (~ri + 1) % ~roots.size;
+			~current !? {
+				~current.set(\root, ~roots[~ri]);
+				"DRIFT: root glides to midinote %".format(~roots[~ri]).postln;
+			};
+			150
+		});
 
 		~stopPad = {
 			~current !? { ~current.set(\gate, 0) };
@@ -115,12 +164,12 @@ s.waitForBoot({
 						~stopPad.();
 					} {
 						~current !? { ~current.set(\gate, 0) };
-						~current = Synth(pads[num][0], [\out, ~bus]);
+						~current = Synth(pads[num][0], [\out, ~bus, \root, ~roots[~ri]]);
 						~currentName = num;
 						("PAD ON:  " ++ pads[num][1]).postln;
 					};
 				}
-				{ num == 3 } {
+				{ num == 4 } {
 					"SILENCE".postln;
 					~stopPad.();
 				}
@@ -136,8 +185,8 @@ s.waitForBoot({
 		});
 
 		"".postln;
-		"PAD PICKER READY — buttons 0/1/2 = pads A/B/C, 3 = silence, pot 0 = filter".postln;
-		"(Ctrl-C to quit)".postln;
+		"PAD PICKER v2 READY — 0=Day 1=Golden 2=Night 3=Deep 4=silence, pot 0 = filter".postln;
+		"Root drifts every 2.5 min while a pad sounds. (Ctrl-C to quit)".postln;
 	};
 }, onFailure: {
 	"SERVER BOOT FAILED".postln;
