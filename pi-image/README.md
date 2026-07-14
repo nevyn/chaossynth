@@ -69,7 +69,8 @@ The device name lives in ONE place: `AUDIO_CARD` at the top of
 USB DAC later = change that name (`aplay -l` on the Pi lists cards),
 re-run `./provision.sh`. It lands in two spots on the Pi: `/etc/asound.conf`
 (ALSA default) and `/etc/default/chaossynth`, which the service passes to
-`synth/run.sh` as `$CHAOS_AUDIO_CARD`.
+`synth/run.sh` as `CHAOS_ALSA_DEV=hw:<card>` (the knob run.sh already
+reads for its jackd device).
 
 ## Festival lockdown
 

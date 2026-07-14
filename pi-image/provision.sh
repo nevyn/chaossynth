@@ -41,10 +41,10 @@ defaults.pcm.card $AUDIO_CARD
 defaults.ctl.card $AUDIO_CARD
 EOF
 
-say "audio: card name for the synth (read by run.sh via the service env)"
+say "audio: device for the synth (synth/run.sh reads CHAOS_ALSA_DEV)"
 cat >/etc/default/chaossynth <<EOF
 # Written by pi-image/provision.sh. The one knob for the output device.
-CHAOS_AUDIO_CARD=$AUDIO_CARD
+CHAOS_ALSA_DEV=hw:$AUDIO_CARD
 EOF
 
 say "audio: unmute, full volume (the speaker's own knob sets loudness)"
