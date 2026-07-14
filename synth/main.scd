@@ -21,14 +21,26 @@ if (~chaosMapping.isNil) {
 	1.exit;
 };
 
+~chaosReady = false;
 s.waitForBoot {
 	~chaosDefineSynths.(s);
 	s.sync;
 	~chaosEngineStart.(s);
 	~chaosMappingWatch.(); // hot-reload poll, ~2 s
 	~chaosMidiStart.();    // connect-by-name retry loop
+	~chaosReady = true;
 	"CHAOSSYNTH READY".postln;
 };
+
+// waitForBoot can give up (jackd alive but scsynth unreachable) leaving sclang
+// idling forever with Restart=always never firing. Die loudly instead.
+SystemClock.sched(60, {
+	if (~chaosReady.not) {
+		"CHAOSSYNTH FATAL: server did not boot within 60 s, exiting for restart".postln;
+		1.exit;
+	};
+	nil
+});
 
 // If scsynth dies we would otherwise sit silent forever; die loudly instead so
 // systemd restarts us.

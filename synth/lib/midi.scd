@@ -14,11 +14,19 @@
 // tasks are fine once this one has happened.
 MIDIClient.init(verbose: false);
 
+// Contract name, plus an optional extra source for bench work: WebMIDI (the
+// layout tool's simulate mode) can't create virtual ports, only talk to an
+// existing IAC bus — so either rename that bus to "Chaossynth" in Audio MIDI
+// Setup, or run with CHAOS_MIDI_SOURCE="IAC Driver Bus 1".
+~chaosSrcNames = ["Chaossynth", "CHAOS_MIDI_SOURCE".getenv].reject(_.isNil);
+
 ~chaosMidiRescan = {
 	var found, foundIDs;
 	MIDIClient.init(verbose: false); // init disposes + rescans internally
 	found = MIDIClient.sources.select { |src|
-		(src.device == "Chaossynth") or: { src.name == "Chaossynth" }
+		~chaosSrcNames.any { |n|
+			(src.device == n) or: { src.name == n } or: { (src.device + src.name) == n }
+		}
 	};
 	found.do { |src| MIDIIn.connect(0, src) };
 	foundIDs = Set.newFrom(found.collect(_.uid));
@@ -53,7 +61,7 @@ MIDIClient.init(verbose: false);
 		try { ~chaosMidiRescan.() } { |err|
 			"MIDI: rescan failed (%) — retrying".format(err.errorString).postln;
 		};
-		if (~chaosSrcIDs.isEmpty) { 2 } { 10 } // reschedule
+		if (~chaosSrcIDs.isEmpty) { 0.5 } { 10 } // reschedule; hunt fast while disconnected
 	});
 	"MIDI: watching for source named 'Chaossynth'".postln;
 };

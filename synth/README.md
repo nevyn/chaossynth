@@ -8,7 +8,7 @@ the MIDI seam: [docs/midi-contract.md](../docs/midi-contract.md).
 
 ```sh
 brew install supercollider   # once
-./run.sh                     # prints CHAOSSYNTH READY; idle drone after 90 s
+./run.sh                     # prints CHAOSSYNTH READY; idle drone fades in ~10 s
 tools/setup.sh               # once — venv for the virtual panel
 ```
 
@@ -40,22 +40,31 @@ tools/smoke-test.sh
 | `MAPPING: loaded N controls` | mapping.json (re)parsed; follows `change detected` on hot reload (~2 s poll) |
 | `MAPPING: REFUSED / FAILED` | bad or unknown-version mapping.json — old mapping stays live |
 | `VOICE: button N down -> midinote M` | a button made a sound |
-| `MASTER: cutoff/resonance/reverb mix/volume` | pot 0–3 moved a master control |
+| `MASTER: cutoff/resonance/reverb mix` | pot 0–2 moved a master control (pot 3 is unassigned pending the sound build) |
 | `UNMAPPED: note/cc N (logged once)` | input not in mapping.json — a mapping bug to fix, never a crash |
 | `SAFETY: max-hold release` | a NoteOff never arrived (yanked cable); voice freed after 5 min |
-| `IDLE: ... drone fading in` / `... ducking` | 90 s without input brings the ambient layer; any input ducks it |
+| `IDLE: ... drone fading in` / `... ducking` | boots straight into the ambient layer; back 90 s after the last input; any input ducks it |
 | `CHAOSSYNTH FATAL` | exiting on purpose so systemd restarts us |
 
 Env knobs (mostly for tests): `CHAOS_PLATFORM=pi|mac`, `CHAOS_IDLE_TIMEOUT`,
 `CHAOS_MAX_HOLD` (seconds), `CHAOS_ALSA_DEV` (Pi jack device, default
-`hw:Headphones`).
+`hw:Headphones`), `CHAOS_MIDI_SOURCE` (accept one extra MIDI source name
+besides "Chaossynth").
 
-## The one true volume knob
+## Simulate mode / IAC
 
-Panel pot 3 ("P3", CC 23) is master volume. Its floor is -35 dB, not silence,
-so a camper zeroing it can't make the rig look dead. The speaker's own knob is
-the ceiling: set it once at install so panel-max is loud-but-legal, then leave
-it alone. (Also documented in docs/installation.md.)
+The layout tool's simulate mode speaks WebMIDI, which cannot create virtual
+ports — it can only send to an existing IAC bus, and the engine only listens
+to sources named "Chaossynth". Two ways in: rename the IAC bus to `Chaossynth`
+in Audio MIDI Setup (zero config, contract-clean), or run
+`CHAOS_MIDI_SOURCE="IAC Driver Bus 1" ./run.sh`.
+
+## Volume
+
+Master volume is deliberately NOT a user control (patch-design decision): the
+speaker/amp's own knob is the ceiling, set once at install; software sits at
+\chaosMaster's fixed -6 dB under the limiter. Pot 3 is unassigned until the
+sound build gives it its real role. (Also documented in docs/installation.md.)
 
 ## Layout
 

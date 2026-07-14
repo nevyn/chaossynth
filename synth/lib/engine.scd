@@ -77,13 +77,14 @@
 };
 
 // Pot id (cc - 20) -> provisional master role. Real assignments come from
-// patch-design via mapping.json's synth{} blobs later.
+// patch-design via mapping.json's synth{} blobs later. Master volume is
+// deliberately NOT here (patch-design decision: the speaker's knob is the
+// ceiling, software stays at \chaosMaster's fixed -6 dB); pot 3 is
+// unassigned until the sound build gives it its real role.
 ~chaosPotRoles = [
 	{ |v| ~chaosMaster.set(\cutoff, v.linexp(0, 127, 200, 12000)); "cutoff" },
 	{ |v| ~chaosMaster.set(\rq, v.linlin(0, 127, 1.0, 0.2)); "resonance" },
-	{ |v| ~chaosMaster.set(\verbMix, v.linlin(0, 127, 0, 0.65)); "reverb mix" },
-	// Floor is -35 dB, not silence: a zeroed pot must never look like a dead rig.
-	{ |v| ~chaosMaster.set(\volDb, v.linlin(0, 127, -35, 0)); "volume" }
+	{ |v| ~chaosMaster.set(\verbMix, v.linlin(0, 127, 0, 0.65)); "reverb mix" }
 ];
 
 ~chaosCC = { |cc, val|
@@ -130,6 +131,12 @@
 	~chaosDrone = Synth(\chaosPad, [\out, ~chaosBus, \targetAmp, 0], ~chaosVoiceGroup);
 	~chaosMaster = Synth(\chaosMaster, [\in, ~chaosBus, \out, 0], ~chaosFxGroup);
 	~chaosLastEvent = Main.elapsedTime;
+
+	// Boot straight into idle: nobody has touched it yet, by definition. This
+	// is what makes "drone within a minute of power" in installation.md true.
+	~chaosIsIdle = true;
+	~chaosDrone.set(\fadeTime, 10, \targetAmp, ~chaosDroneAmp);
+	"IDLE: starting idle, drone fading in (10 s)".postln;
 
 	// The idle clock: 1 s resolution is plenty for a 90 s timeout.
 	SystemClock.sched(1, {

@@ -19,16 +19,22 @@ check() { # check <description> <grep-pattern>
 
 tools/setup.sh || exit 1
 
+# A Chaossynth-named source may legitimately pre-exist (an IAC bus renamed for
+# the layout tool's simulate mode) — then an early connect is correct, not a bug.
+PREEXISTING=$(tools/.venv/bin/python -c \
+  "import mido; print(sum('Chaossynth' in n for n in mido.get_input_names()))" 2>/dev/null || echo 0)
+
 echo "smoke: starting engine (log: $LOG)"
 CHAOS_IDLE_TIMEOUT=6 CHAOS_MAX_HOLD=8 ./run.sh >"$LOG" 2>&1 &
 ENGINE_PID=$!
 cleanup() {
+  # run.sh execs sclang, so ENGINE_PID is sclang; its scsynth child survives
+  # the kill and must go separately. Capture it while the parent is alive —
+  # killing by name would take out a sibling session's server too.
+  SCSYNTH_PID=$(pgrep -x -P "$ENGINE_PID" scsynth 2>/dev/null || true)
   kill "$ENGINE_PID" 2>/dev/null
   wait "$ENGINE_PID" 2>/dev/null # swallow bash's "Terminated" noise
-  # run.sh execs sclang, so ENGINE_PID is sclang; its scsynth child survives
-  # the kill and must go separately. Exact-name match to spare anything else.
-  sleep 1
-  pkill -x scsynth 2>/dev/null
+  [ -n "${SCSYNTH_PID:-}" ] && kill "$SCSYNTH_PID" 2>/dev/null
 }
 trap cleanup EXIT
 
@@ -44,11 +50,18 @@ if [ "$FAILURES" -gt 0 ]; then
   exit 1
 fi
 if grep -q "MIDI: connected" "$LOG"; then
-  echo "FAIL: engine claims a MIDI connection before the panel exists"
-  FAILURES=$((FAILURES + 1))
+  if [ "$PREEXISTING" -gt 0 ]; then
+    echo "SKIP: pre-existing Chaossynth source (IAC bus?), early connect is expected"
+  else
+    echo "FAIL: engine claims a MIDI connection before the panel exists"
+    FAILURES=$((FAILURES + 1))
+  fi
 fi
 
-echo "smoke: running scenario (~25 s)"
+echo "smoke: running scenario (~35 s)"
+# Scenario events start at t=8: SC's MIDIClient re-init takes ~4-5 s to notice
+# a brand-new CoreMIDI port, so earlier events race the connect and vanish
+# (bit us for real on 07-14; the engine hunts every 0.5 s but CoreMIDI is slow).
 tools/.venv/bin/python tools/virtual-panel.py scenario tools/smoke-scenario.json
 
 echo "smoke: touching mapping.json for the hot-reload check"
@@ -65,12 +78,13 @@ else
   FAILURES=$((FAILURES + 1))
 fi
 check "pot 0 drives the filter" "MASTER: cutoff"
-check "pot 3 drives the volume" "MASTER: volume"
+check "pot 3 unassigned (volume evicted per patch-design)" "POT: 3 = .* no master role"
 check "cc 123 releases the held chord" "ALL NOTES OFF \(cc 123\): releasing 3"
 check "unmapped note logs once, no crash" "UNMAPPED: note 31"
 check "unmapped cc logs once, no crash" "UNMAPPED: cc 45"
 check "stuck note released by max-hold safety" "SAFETY: max-hold"
-check "idle timeout brings the drone in" "IDLE: .* drone fading in"
+check "boots straight into idle drone" "IDLE: starting idle, drone fading in"
+check "idle timeout brings the drone back" "IDLE: [0-9.]+ s without input, drone fading in"
 check "input ducks the drone" "IDLE: input received, drone ducking"
 check "mapping.json hot-reload noticed" "MAPPING: change detected"
 if [ "$(grep -c "MAPPING: loaded" "$LOG")" -ge 2 ]; then
