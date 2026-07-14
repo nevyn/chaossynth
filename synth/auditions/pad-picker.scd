@@ -4,10 +4,10 @@
 //
 // Run:  /Applications/SuperCollider.app/Contents/MacOS/sclang synth/auditions/pad-picker.scd
 //
-//   button 0 -> Day    (09-17)  tape-warble blooms + bell twinkles
-//   button 1 -> Golden (17-20)  warm glass, microtonal shimmer, sunset sweeps
-//   button 2 -> Night  (20-01)  dubby arp (pattern reshuffles ~26 s), breathing sub
-//   button 3 -> Deep   (01-09)  dark still blooms + ocean breath + sub
+//   button 0 -> Day    (09-17)  tape-warble blooms + twinkles          [SETTLED 07-15]
+//   button 1 -> Golden (17-20)  warm glass, microtonal shimmer         [SETTLED 07-15]
+//   button 2 -> Night  (20-01)  dubby arp — TABLED, not working yet
+//   button 3 -> Deep   (01-09)  dark low blooms + sub                  [SETTLED 07-15]
 //   button 4 -> silence (or press the sounding pad's button again)
 //   pot 0 (CC 20) -> master filter cutoff
 //
@@ -38,9 +38,8 @@ s.waitForBoot({
 			var env = EnvGen.kr(Env.asr(3, 1, 2.5), gate, doneAction: 2);
 			var twinkTrig = Dust.kr(0.12); // a sparkle every ~8 s
 			var twinkNote = Select.kr(TIRand.kr(0, 4, twinkTrig), notes) + 24;
-			var tf = Latch.kr(twinkNote, twinkTrig).midicps;
-			var twinkle = (SinOsc.ar(tf) * EnvGen.kr(Env.perc(0.005, 2.2, 0.08), twinkTrig))
-				+ (SinOsc.ar(tf * 2.756) * EnvGen.kr(Env.perc(0.002, 0.35, 0.035), twinkTrig));
+			var twinkle = SinOsc.ar(Latch.kr(twinkNote, twinkTrig).midicps)
+				* EnvGen.kr(Env.perc(0.01, 2.5, 0.05), twinkTrig); // plain sine: bell rejected 07-15
 			var sig = Mix.fill(5, { |i|
 				var bloom = SinOsc.kr(0.04 + (0.011 * i), (i * 2.1) % 2pi).range(0, 1).squared;
 				var note = Latch.kr(notes[i], Impulse.kr(0) + (bloom < 0.004)); // re-pitch while silent
@@ -103,30 +102,25 @@ s.waitForBoot({
 			Out.ar(out, mix * env * amp);
 		}).add;
 
-		// Deep: its own thing now — 3 still, dark voices (triangle-led, not
-		// Day's saws), an oceanic noise breath, sub reinforcing the root.
-		// Rebirth-drift like Day, but slower everything.
-		SynthDef(\padDeep, { |out = 0, gate = 1, amp = 0.22|
+		// Deep: round-2 timbre (Day's warmth an octave down — Nevyn preferred it
+		// over the triangle/ocean-breath experiment) + the rebirth chord drift.
+		SynthDef(\padDeep, { |out = 0, gate = 1, amp = 0.2|
 			var notes = \notes.kr([45, 52, 57, 60, 64]);
 			var wow = 1 + (LFNoise2.kr(0.3) * 0.005);
 			var env = EnvGen.kr(Env.asr(5, 1, 4), gate, doneAction: 2);
-			var sig = Mix.fill(3, { |i|
-				var bloom = SinOsc.kr(0.025 + (0.007 * i), (i * 2.3) % 2pi).range(0, 1).squared;
+			var sig = Mix.fill(5, { |i|
+				var bloom = SinOsc.kr(0.03 + (0.008 * i), (i * 2.3) % 2pi).range(0, 1).squared;
 				var note = Latch.kr(notes[i] - 12, Impulse.kr(0) + (bloom < 0.004));
 				var f = note.midicps * wow;
 				Pan2.ar(
-					(LFTri.ar(f) * 0.6) + (Saw.ar(f * 1.0012) * 0.25),
-					i.linlin(0, 2, -0.4, 0.4)
+					Saw.ar(f * 1.0012) + Saw.ar(f * 0.9988),
+					i.linlin(0, 4, -0.5, 0.5)
 				) * bloom * (1 / (i + 1)).sqrt
 			});
-			var breath = Pan2.ar(
-				BPF.ar(PinkNoise.ar, LFNoise2.kr(0.07).exprange(250, 700), 0.8),
-				LFNoise2.kr(0.04).range(-0.4, 0.4)
-			) * (LFNoise2.kr(0.05).max(0).squared * 0.5); // slow irregular ocean swells
 			var sub = SinOsc.ar(Lag.kr(notes[0] - 12, 8).midicps)
-				* LFNoise2.kr(0.05).range(0.25, 0.55);
-			sig = MoogFF.ar(sig, LFNoise2.kr(0.04).exprange(200, 550), 1.2);
-			sig = sig + breath + Pan2.ar(sub, 0) + PinkNoise.ar(0.003 ! 2);
+				* LFNoise2.kr(0.05).range(0.2, 0.5) * 0.6;
+			sig = MoogFF.ar(sig, LFNoise2.kr(0.04).exprange(250, 800), 1.2);
+			sig = sig + Pan2.ar(sub, 0) + PinkNoise.ar(0.003 ! 2);
 			Out.ar(out, sig * env * amp);
 		}).add;
 

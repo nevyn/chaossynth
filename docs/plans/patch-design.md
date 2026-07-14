@@ -33,9 +33,11 @@ the button build").
 1. **Harmonic brain** — one global `root + mode`. Every sound source quantizes
    through it; nobody can play outside it. Root changes retune the arp
    immediately and the drone glides over ~2 bars. Mode changes apply to new
-   notes only. At idle the brain drifts by itself: root steps to a neighbor
-   every 2–4 min (always a glide, never a jump), so a nearby camp never hears
-   the same minute twice.
+   notes only. At idle the brain drifts by itself: the chord walks A→C→G→D
+   every ~2.5 min, all voiced inside A minor pentatonic so overlapping
+   transitions stay consonant. Drift styles settled 07-15 by ear: Day/Deep
+   re-pitch each voice only while it is silent ("pause, then the new key");
+   Golden glides over 12 s. Never 4 s — too fast, audibly bendy.
 2. **Energy** — a leaky integrator of input events (decay ~60 s) replacing the
    engine's binary idle/active flag (keep `CHAOS_IDLE_TIMEOUT` as the
    energy-zero point). Drives arp density, beat presence, drone duck. The arp
@@ -57,7 +59,11 @@ the button build").
 | Night | 20–01 | dub drone, big breathing sub (C) | 170 (half-time feel) | chopped breaks | amen slices, sub drops |
 | Deep | 01–09 | Day's warmth an octave down + gentle sub (D) | 66 | none | soft crackle swells |
 
-(Collapsed to 4 slots, Nevyn 07-15.) Deep's volume/low-end caps (hardest 01–06)
+(Collapsed to 4 slots, Nevyn 07-15.) Pad status 07-15: Day, Golden, Deep
+SETTLED by ear (synth/auditions/pad-picker.scd holds the settled synthdefs).
+**Night's idle pad is OPEN** — chord-on-repeat was annoying, the arp attempt
+read as "weird note hits"; tabled to prioritize the main instrument. Stopgap:
+use Deep's pad in the Night slot until revisited. Deep's volume/low-end caps (hardest 01–06)
 are the sound-policy answer — sub reads cozy at the panel but carries across a
 camp at night, so it gets level-capped there, not removed. Verify the actual
 Borderland quiet hours and adjust boundaries (TBD).
