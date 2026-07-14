@@ -1,18 +1,21 @@
-// Pad audition rig, round 2: click layout-tool Simulate buttons to A/B the
+// Pad audition rig, round 3: click layout-tool Simulate buttons to A/B the
 // atmosphere pads. Runs INSTEAD of the engine (stop run.sh first). Listens to
 // ALL MIDI sources, so the layout tool's IAC bus works with no env vars.
 //
 // Run:  /Applications/SuperCollider.app/Contents/MacOS/sclang synth/auditions/pad-picker.scd
 //
-//   button 0 -> Day    (09-17)  tape-warble blooms + twinkles
-//   button 1 -> Golden (17-20)  warm glass, sunset filter sweeps
-//   button 2 -> Night  (20-01)  dub drone, breathing sub, hotter echo
-//   button 3 -> Deep   (01-09)  Day's warmth an octave down + gentle sub
+//   button 0 -> Day    (09-17)  tape-warble blooms + bell twinkles
+//   button 1 -> Golden (17-20)  warm glass, microtonal shimmer, sunset sweeps
+//   button 2 -> Night  (20-01)  dubby arp (pattern reshuffles ~26 s), breathing sub
+//   button 3 -> Deep   (01-09)  dark still blooms + ocean breath + sub
 //   button 4 -> silence (or press the sounding pad's button again)
 //   pot 0 (CC 20) -> master filter cutoff
 //
-// The sounding pad's root drifts to a neighbor every 2.5 min (A->C->G->D),
-// gliding over ~4 s — the anti-annoyance behavior the real drone will have.
+// Drift: every 2.5 min the chord moves A -> C -> G -> D, all voiced inside
+// A minor pentatonic so transitions can overlap without clashing.
+// TWO drift styles to compare:  Day/Deep re-pitch each voice as it is REBORN
+// (pause, then new note in new key); Golden GLIDES over 12 s.  Night's arp
+// simply picks the new chord on its next step.
 (
 var pads;
 
@@ -26,21 +29,22 @@ MIDIIn.connectAll;
 
 s.waitForBoot({
 	fork {
-		// Day: voices bloom fully in and out (never one endless sustain), rare
-		// high twinkles, smooth hiss only — the Dust crackle read as clicks.
-		SynthDef(\padDay, { |out = 0, gate = 1, amp = 0.24, root = 45|
-			var r = root.lag(4);
-			var offs = [0, 7, 12, 15, 19];
+		// Day: voices bloom fully in and out; each voice latches its pitch while
+		// silent, so drift arrives as reborn notes, never a bend.
+		SynthDef(\padDay, { |out = 0, gate = 1, amp = 0.24|
+			var notes = \notes.kr([45, 52, 57, 60, 64]);
 			var wow = 1 + (LFNoise2.kr(0.4) * 0.006);
 			var flutter = 1 + (LFNoise2.kr(7) * 0.0012);
 			var env = EnvGen.kr(Env.asr(3, 1, 2.5), gate, doneAction: 2);
 			var twinkTrig = Dust.kr(0.12); // a sparkle every ~8 s
-			var twinkNote = r + 24 + TChoose.kr(twinkTrig, [0, 3, 7, 12]);
-			var twinkle = SinOsc.ar(twinkNote.midicps)
-				* EnvGen.kr(Env.perc(0.01, 2.5, 0.05), twinkTrig);
+			var twinkNote = Select.kr(TIRand.kr(0, 4, twinkTrig), notes) + 24;
+			var tf = Latch.kr(twinkNote, twinkTrig).midicps;
+			var twinkle = (SinOsc.ar(tf) * EnvGen.kr(Env.perc(0.005, 2.2, 0.08), twinkTrig))
+				+ (SinOsc.ar(tf * 2.756) * EnvGen.kr(Env.perc(0.002, 0.35, 0.035), twinkTrig));
 			var sig = Mix.fill(5, { |i|
-				var f = (r + offs[i]).midicps * wow * flutter;
 				var bloom = SinOsc.kr(0.04 + (0.011 * i), (i * 2.1) % 2pi).range(0, 1).squared;
+				var note = Latch.kr(notes[i], Impulse.kr(0) + (bloom < 0.004)); // re-pitch while silent
+				var f = note.midicps * wow * flutter;
 				Pan2.ar(
 					Saw.ar(f * 1.0018) + Saw.ar(f * 0.9982),
 					i.linlin(0, 4, -0.6, 0.6)
@@ -52,18 +56,19 @@ s.waitForBoot({
 			Out.ar(out, sig * env * amp);
 		}).add;
 
-		// Golden: the glass bloom warmed up — a saw glowing under the triangles,
-		// Am7 voicing, slow sunset filter sweeps.
-		SynthDef(\padGolden, { |out = 0, gate = 1, amp = 0.26, root = 45|
-			var r = root.lag(4);
-			var offs = [0, 7, 10, 12, 19];
-			var wow = 1 + (LFNoise2.kr(0.25) * 0.004);
+		// Golden: glassier than Day on purpose — triangle/sine partials with a
+		// LEANED-IN microdetune shimmer (that quality you noticed and liked),
+		// quiet saw glow, sunset sweeps. Drift GLIDES over 12 s.
+		SynthDef(\padGolden, { |out = 0, gate = 1, amp = 0.26|
+			var notes = \notes.kr([45, 52, 57, 60, 64]);
 			var env = EnvGen.kr(Env.asr(4, 1, 3), gate, doneAction: 2);
 			var sig = Mix.fill(5, { |i|
-				var f = (r + offs[i]).midicps * wow;
+				var f = Lag.kr(notes[i], 12).midicps; // the 12 s glide drift
 				var bloom = SinOsc.kr(0.05 + (0.013 * i), (i * 1.7) % 2pi).range(0.1, 1);
-				var v = (LFTri.ar(f) * 0.4) + (Saw.ar(f * 1.003) * 0.18)
-					+ SinOsc.ar(f * 2, 0, 0.12);
+				var v = (LFTri.ar(f) * 0.4)
+					+ (LFTri.ar(f * 1.006) * 0.25)          // ~10 cent shimmer pair
+					+ (SinOsc.ar(f * 2.01, 0, 0.14))        // barely-sharp octave
+					+ (Saw.ar(f * 0.997) * 0.1);            // faint warm glow
 				Pan2.ar(v, LFNoise2.kr(0.05 + (0.01 * i)).range(-0.5, 0.5))
 					* bloom * (1 / (i + 1)).sqrt
 			});
@@ -73,47 +78,55 @@ s.waitForBoot({
 			Out.ar(out, sig * env * amp);
 		}).add;
 
-		// Night: more energy + bass — brighter stab peak, hotter echo, and a sub
-		// that swells up AFTER each chord (breathes against it).
-		SynthDef(\padNight, { |out = 0, gate = 1, amp = 0.3, root = 45|
-			var r = root.lag(4);
+		// Night: single dubby stabs, sequenced by the rig's arp task.
+		SynthDef(\nightStab, { |out = 0, note = 57, amp = 0.5|
+			var f = note.midicps;
+			var env = EnvGen.kr(Env.perc(0.01, 0.9, 1, -4), doneAction: 2);
+			var sig = Saw.ar(f * [0.9985, 1.0015]).sum * 0.5;
+			sig = RLPF.ar(sig, env.linexp(0, 1, 300, 3000), 0.5);
+			Out.ar(out, sig * env * amp);
+		}).add;
+
+		// Night's shared tail: dark stereo echo + verb + the sub. Sub got LOUD
+		// (0.85) plus a 2nd harmonic so it reads on small speakers.
+		SynthDef(\nightFx, { |in, out = 0, subnote = 33, gate = 1, amp = 0.32|
+			var stab = In.ar(in, 1);
 			var env = EnvGen.kr(Env.asr(0.5, 1, 3), gate, doneAction: 2);
-			var trig = Impulse.kr(1 / 3.2);
-			var chordEnv = EnvGen.kr(Env.perc(0.02, 1.6), trig);
-			var subEnv = EnvGen.kr(Env.new([0, 0, 1, 0], [0.5, 0.7, 1.8], \sin), trig);
-			var offs = [12, 15, 19, 22]; // Am7 above the root
-			var stab = Mix(offs.collect { |o|
-				Saw.ar((r + o).midicps * [0.9985, 1.0015]).sum * 0.12
-			});
-			var sub = SinOsc.ar((r - 12).midicps) * subEnv * 0.55;
-			var echoL, echoR, mix;
-			stab = RLPF.ar(stab, chordEnv.linexp(0, 1, 300, 3200), 0.45) * chordEnv;
-			echoL = CombC.ar(stab, 1.0, 0.53, 9);
-			echoR = CombC.ar(stab, 1.0, 0.35, 9);
-			mix = LPF.ar([stab + (echoL * 0.85), stab + (echoR * 0.85)], 2000);
+			var echoL = CombC.ar(stab, 1.0, 0.53, 9);
+			var echoR = CombC.ar(stab, 1.0, 0.35, 9);
+			var mix = LPF.ar([stab + (echoL * 0.85), stab + (echoR * 0.85)], 2000);
+			var sf = Lag.kr(subnote, 8).midicps;
+			var breath = LFNoise2.kr(0.06).range(0.4, 1);
+			var sub = ((SinOsc.ar(sf) * 0.85) + (SinOsc.ar(sf * 2) * 0.28)) * breath;
 			mix = FreeVerb2.ar(mix[0], mix[1], 0.45, 0.92, 0.5);
 			mix = mix + Pan2.ar(sub, 0) + PinkNoise.ar(0.004 ! 2);
 			Out.ar(out, mix * env * amp);
 		}).add;
 
-		// Deep: Day's character dropped an octave, darker filter, slower blooms,
-		// gentle sub sine. (In the installation this slot is also level-capped.)
-		SynthDef(\padDeep, { |out = 0, gate = 1, amp = 0.2, root = 45|
-			var r = root.lag(6);
-			var offs = [-12, -5, 0, 3, 7];
+		// Deep: its own thing now — 3 still, dark voices (triangle-led, not
+		// Day's saws), an oceanic noise breath, sub reinforcing the root.
+		// Rebirth-drift like Day, but slower everything.
+		SynthDef(\padDeep, { |out = 0, gate = 1, amp = 0.22|
+			var notes = \notes.kr([45, 52, 57, 60, 64]);
 			var wow = 1 + (LFNoise2.kr(0.3) * 0.005);
 			var env = EnvGen.kr(Env.asr(5, 1, 4), gate, doneAction: 2);
-			var sig = Mix.fill(5, { |i|
-				var f = (r + offs[i]).midicps * wow;
-				var bloom = SinOsc.kr(0.03 + (0.008 * i), (i * 2.3) % 2pi).range(0, 1).squared;
+			var sig = Mix.fill(3, { |i|
+				var bloom = SinOsc.kr(0.025 + (0.007 * i), (i * 2.3) % 2pi).range(0, 1).squared;
+				var note = Latch.kr(notes[i] - 12, Impulse.kr(0) + (bloom < 0.004));
+				var f = note.midicps * wow;
 				Pan2.ar(
-					Saw.ar(f * 1.0012) + Saw.ar(f * 0.9988),
-					i.linlin(0, 4, -0.5, 0.5)
+					(LFTri.ar(f) * 0.6) + (Saw.ar(f * 1.0012) * 0.25),
+					i.linlin(0, 2, -0.4, 0.4)
 				) * bloom * (1 / (i + 1)).sqrt
 			});
-			var sub = SinOsc.ar((r - 12).midicps) * LFNoise2.kr(0.05).range(0.2, 0.5) * 0.6;
-			sig = MoogFF.ar(sig, LFNoise2.kr(0.04).exprange(250, 800), 1.2);
-			sig = sig + Pan2.ar(sub, 0) + PinkNoise.ar(0.003 ! 2);
+			var breath = Pan2.ar(
+				BPF.ar(PinkNoise.ar, LFNoise2.kr(0.07).exprange(250, 700), 0.8),
+				LFNoise2.kr(0.04).range(-0.4, 0.4)
+			) * (LFNoise2.kr(0.05).max(0).squared * 0.5); // slow irregular ocean swells
+			var sub = SinOsc.ar(Lag.kr(notes[0] - 12, 8).midicps)
+				* LFNoise2.kr(0.05).range(0.25, 0.55);
+			sig = MoogFF.ar(sig, LFNoise2.kr(0.04).exprange(200, 550), 1.2);
+			sig = sig + breath + Pan2.ar(sub, 0) + PinkNoise.ar(0.003 ! 2);
 			Out.ar(out, sig * env * amp);
 		}).add;
 
@@ -126,34 +139,79 @@ s.waitForBoot({
 		s.sync;
 
 		~bus = Bus.audio(s, 2);
-		~master = Synth(\pickerMaster, [\in, ~bus, \out, 0]);
+		~nightBus = Bus.audio(s, 1);
+		~master = Synth(\pickerMaster, [\in, ~bus, \out, 0], addAction: \addToTail);
 		~current = nil;
 		~currentName = nil;
+		~nightTask = nil;
+		~nightFx = nil;
+
+		// Chords voiced inside A minor pentatonic (A C D E G) so any two can
+		// overlap during a drift transition without clashing.
+		~chordNames = ["A", "C", "G", "D"];
+		~chords = [
+			[45, 52, 57, 60, 64],  // A: A E A C E
+			[48, 55, 60, 64, 67],  // C: C G C E G
+			[43, 50, 55, 62, 67],  // G: G D G D G (open fifths)
+			[50, 57, 62, 67, 69]   // D: D A D G A
+		];
+		~ci = 0;
 
 		pads = [
 			[\padDay,    "Day (09-17) — tape-warble blooms + twinkles"],
-			[\padGolden, "Golden (17-20) — warm glass, sunset sweeps"],
-			[\padNight,  "Night (20-01) — dub drone, breathing sub"],
-			[\padDeep,   "Deep (01-09) — dark warmth + gentle sub"]
+			[\padGolden, "Golden (17-20) — warm glass, microtonal shimmer"],
+			[nil,        "Night (20-01) — dubby arp, breathing sub"],
+			[\padDeep,   "Deep (01-09) — dark still blooms + ocean breath"]
 		];
 
-		// Root drift: A -> C -> G -> D, every 2.5 min, glide not jump.
-		~roots = [45, 48, 43, 50];
-		~ri = 0;
-		SystemClock.sched(150, {
-			~ri = (~ri + 1) % ~roots.size;
-			~current !? {
-				~current.set(\root, ~roots[~ri]);
-				"DRIFT: root glides to midinote %".format(~roots[~ri]).postln;
-			};
-			150
-		});
+		// 8-step arp pattern over the chord: 6 tones + 2 rests, reshuffled
+		// every 32 steps (~26 s) so it never settles into one loop.
+		~makePattern = {
+			([0, 1, 2, 3, 4].scramble.keep(6) ++ [nil, nil]).scramble
+		};
+
+		~startNight = {
+			~nightFx = Synth(\nightFx,
+				[\in, ~nightBus, \out, ~bus, \subnote, ~chords[~ci][0] - 12],
+				~master, \addBefore);
+			~nightTask = Task({
+				var pattern = ~makePattern.();
+				var step = 0;
+				loop {
+					var slot = pattern[step % 8];
+					slot !? {
+						Synth(\nightStab, [\out, ~nightBus, \note, ~chords[~ci][slot] + 12],
+							~nightFx, \addBefore);
+					};
+					step = step + 1;
+					if (step % 32 == 0) {
+						pattern = ~makePattern.();
+						"ARP: new pattern".postln;
+					};
+					0.75.wait;
+				};
+			}).play;
+		};
 
 		~stopPad = {
 			~current !? { ~current.set(\gate, 0) };
 			~current = nil;
+			~nightTask !? { ~nightTask.stop };
+			~nightTask = nil;
+			~nightFx !? { ~nightFx.set(\gate, 0) };
+			~nightFx = nil;
 			~currentName = nil;
 		};
+
+		SystemClock.sched(150, {
+			~ci = (~ci + 1) % ~chords.size;
+			~current !? { ~current.setn(\notes, ~chords[~ci]) };
+			~nightFx !? { ~nightFx.set(\subnote, ~chords[~ci][0] - 12) };
+			if (~currentName.notNil) {
+				"DRIFT: chord -> %".format(~chordNames[~ci]).postln;
+			};
+			150
+		});
 
 		MIDIdef.noteOn(\pick, { |vel, num|
 			if (vel > 0) {
@@ -163,8 +221,13 @@ s.waitForBoot({
 						("PAD OFF: " ++ pads[num][1]).postln;
 						~stopPad.();
 					} {
-						~current !? { ~current.set(\gate, 0) };
-						~current = Synth(pads[num][0], [\out, ~bus, \root, ~roots[~ri]]);
+						~stopPad.();
+						if (num == 2) {
+							~startNight.();
+						} {
+							~current = Synth(pads[num][0], [\out, ~bus], ~master, \addBefore);
+							~current.setn(\notes, ~chords[~ci]);
+						};
 						~currentName = num;
 						("PAD ON:  " ++ pads[num][1]).postln;
 					};
@@ -185,8 +248,9 @@ s.waitForBoot({
 		});
 
 		"".postln;
-		"PAD PICKER v2 READY — 0=Day 1=Golden 2=Night 3=Deep 4=silence, pot 0 = filter".postln;
-		"Root drifts every 2.5 min while a pad sounds. (Ctrl-C to quit)".postln;
+		"PAD PICKER v3 READY — 0=Day 1=Golden 2=Night(arp) 3=Deep 4=silence, pot 0 = filter".postln;
+		"Drift every 2.5 min: Day/Deep re-pitch on rebirth, Golden glides 12 s.".postln;
+		"(Ctrl-C to quit)".postln;
 	};
 }, onFailure: {
 	"SERVER BOOT FAILED".postln;
