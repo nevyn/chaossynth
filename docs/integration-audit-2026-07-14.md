@@ -80,8 +80,10 @@ hardening wins. Fix items are routed by owner below; check them off as they land
   every USB mount, not "once at boot" (deliberate, safer, already in
   firmware/README); and the `synth{}` pointer's "pins its schema later" tense —
   patch-design.md pins it now.
-- [ ] **Clock integrity decision:** RTC module if you can still source one, else
-  NTP-over-hotspot as a maintenance habit + the engine fallback above.
+- [x] **Clock integrity decision:** Electrokit DS3231 HAT picked 07-14
+  (ordering; 1 in stock + needs a CR1220). `pi-image/rtc.sh` is ready for
+  when it lands; the engine fallback stays in patch-design as shipping
+  insurance.
 - [x] **git-lfs for samples** — decided 07-14: no LFS; keep banks small, no
   more big binary batches without revisiting (noted in patch-design.md).
 - [ ] **construction-plan.md** (you own it): fold in patch-design's "Informs the

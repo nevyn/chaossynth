@@ -72,6 +72,19 @@ re-run `./provision.sh`. It lands in two spots on the Pi: `/etc/asound.conf`
 `synth/run.sh` as `CHAOS_ALSA_DEV=hw:<card>` (the knob run.sh already
 reads for its jackd device).
 
+## RTC (DS3231 HAT)
+
+Wall-clock atmospheres need a clock that survives power cuts (overlayfs
+discards fake-hwclock's saves, so time otherwise rewinds to lockdown
+day). With the HAT seated and its CR1220 battery in:
+
+    ./rtc.sh     # first run arms the overlay -> reboot -> run rtc.sh again
+
+The second run writes system time into the RTC and verifies. Do it while
+the Pi's clock is correct (NTP on home wifi). The script refuses to do
+anything if it can't see the chip at i2c 0x68, and installs a oneshot
+service that restores the clock from the RTC before the synth starts.
+
 ## Festival lockdown
 
 The LAST step before packing, after checkpoint D:
