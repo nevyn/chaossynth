@@ -18,9 +18,11 @@ RGB LEDs: separate shinycore controller, not in this repo.
 ```
 
 Ambient drone when idle; every control makes an immediately audible, never-wrong
-sound when touched. All musical meaning lives on the Pi (remappable live, no
-reflash); the firmware just reports stable control ids. The seam between the parts
-is pinned in [docs/midi-contract.md](docs/midi-contract.md).
+sound when touched. All musical meaning lives on the Pi — remap by editing a
+JSON file, never by reflashing firmware (hot-reload in development,
+`pi-image/deploy.sh --ephemeral` in the field). The firmware just reports stable
+control ids. The seam between the parts is pinned in
+[docs/midi-contract.md](docs/midi-contract.md).
 
 ## Repo map
 

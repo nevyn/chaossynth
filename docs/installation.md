@@ -28,8 +28,9 @@ commands — this doc gets read in a field, on a phone, with a hangover.
 |---|---|
 | Restart the synth | `sudo systemctl restart chaossynth` |
 | Watch logs | `journalctl -u chaossynth -f` |
-| Change the mapping | edit synth/mapping.json on the laptop (layout tool), then `pi-image/overlayfs.sh off` (reboots, ~1 min), `pi-image/deploy.sh` (restarts synth, seconds of silence), `pi-image/overlayfs.sh on` (reboots again) |
-| Volume | panel pot 3 ("P3") is master volume (floor is -35 dB, never fully silent). The speaker's own knob is the ceiling: set it once at install so panel-max = loud-but-legal, then leave it |
+| Try a remap | edit synth/mapping.json on the laptop (layout tool), then `pi-image/deploy.sh --ephemeral` — hot-reloads in ~2 s, sound keeps running; reverts on reboot, so a power cycle = undo |
+| Keep a remap | same edit, then `pi-image/overlayfs.sh off` (reboots, ~1 min), `pi-image/deploy.sh`, `pi-image/overlayfs.sh on` (reboots again) |
+| Volume | the speaker/amp's own knob — master volume is deliberately not a panel control. Set it once at install to loud-but-legal; software sits at a fixed -6 dB under a limiter |
 | Full reset | power-cycle everything; it is designed to boot into working |
 
 ## Troubleshooting

@@ -21,7 +21,10 @@ conflicts scream in red.
    banner is empty, so a half-finished layout never breaks the firmware build.
 6. **Simulate** sends the mapped MIDI via WebMIDI to a selectable output (on a
    Mac: enable the IAC Driver bus in Audio MIDI Setup) - click buttons, drag
-   pots vertically.
+   pots vertically. NOTE: the synth only listens to sources named
+   "Chaossynth", and WebMIDI can't create virtual ports - so either rename
+   the IAC bus to `Chaossynth` (Audio MIDI Setup > IAC Driver > bus name), or
+   start the synth with `CHAOS_MIDI_SOURCE="IAC Driver Bus 1" ./run.sh`.
 
 Other browsers: no live writing (no File System Access API); use the download
 buttons for both files.

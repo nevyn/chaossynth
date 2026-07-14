@@ -23,7 +23,9 @@ the actual musicality lands later via docs/plans/patch-design.md.
    systemd-journal heartbeat).
 3. **synth/lib/**
    - `mapping.scd` — parse mapping.json; poll mtime every ~2 s and hot-reload on
-     change, sound uninterrupted. This is how we remap live at the burn.
+     change, sound uninterrupted. This is how we remap live at the burn — in the
+     field it's fed by `pi-image/deploy.sh --ephemeral`, which works under
+     overlayfs (RAM-only, reverts on reboot).
    - `midi.scd` — connect to the source named "Chaossynth", retrying until it
      appears (the panel may enumerate after boot) and surviving re-appearance
      after a cable yank. Dispatch note/CC per mapping; CC 123 releases
