@@ -240,6 +240,10 @@ void setup() {
 
   usbMidiTransport.setStringDescriptor("Chaossynth");
   MIDI.begin(MIDI_CHANNEL_OMNI);
+  // The MIDI library enables soft-thru by default; combined with MIDI.read()
+  // that would echo anything the host sends back out — bytes the contract
+  // doesn't allow us to emit.
+  MIDI.turnThruOff();
 
   Wire.setSDA(I2C_SDA_PIN);
   Wire.setSCL(I2C_SCL_PIN);
