@@ -63,6 +63,9 @@ MIDIClient.init(verbose: false);
 		};
 		if (~chaosSrcIDs.isEmpty) { 0.5 } { 10 } // reschedule; hunt fast while disconnected
 	});
-	"MIDI: watching for source named 'Chaossynth'".postln;
+	// Print every name we match on, so a mangled CHAOS_MIDI_SOURCE (e.g. an
+	// unquoted "IAC Driver Bus 1" arriving as just "IAC") is visible at boot.
+	"MIDI: watching for sources named %".format(
+		~chaosSrcNames.collect { |n| "'" ++ n ++ "'" }.join(", ")).postln;
 };
 )
