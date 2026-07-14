@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chaossynth layout tool</title>
+<style>
+  :root {
+    --bg: #16181d; --panel: #1f232b; --line: #333a46; --fg: #dde3ec; --dim: #8a93a5;
+    --btn: #2d9cdb; --pot: #f2994a; --err: #e05252; --ok: #4caf7d; --warn: #d9a441;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; background: var(--bg); color: var(--fg);
+         font: 14px/1.45 system-ui, sans-serif; }
+  button { background: #2a3040; color: var(--fg); border: 1px solid var(--line);
+           border-radius: 6px; padding: 5px 11px; font: inherit; cursor: pointer; }
+  button:hover { border-color: #4a5468; }
+  button.active { background: var(--btn); border-color: var(--btn); color: #fff; }
+  button.danger { border-color: var(--err); color: var(--err); }
+  input, select, textarea { background: #14161b; color: var(--fg); border: 1px solid var(--line);
+           border-radius: 5px; padding: 4px 7px; font: inherit; }
+  input.invalid, textarea.invalid { border-color: var(--err); outline: 1px solid var(--err); }
+  input[type=number] { width: 5em; }
+
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+           padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+  header .grow { flex: 1; }
+  #repoStatus { color: var(--dim); }
+  #repoStatus.on { color: var(--ok); }
+  .chip { padding: 2px 9px; border-radius: 10px; font-size: 12px; white-space: nowrap; }
+  .chip.ok { background: #1d3a2b; color: var(--ok); }
+  .chip.warn { background: #3d3014; color: var(--warn); }
+  .chip.err { background: #40191c; color: #ff9a9a; }
+  #saveStatus { font-size: 12px; color: var(--dim); }
+  #saveStatus.err { color: var(--err); font-weight: 700; }
+
+  #banner:empty { display: none; }
+  #banner { padding: 6px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .msg { border-radius: 6px; padding: 7px 11px; }
+  .msg.fatal { background: #40191c; color: #ffb3b3; font-weight: 700; }
+  .msg.info { background: #1d2c3d; color: #9ec9ef; }
+  .msg.errors { background: #2c1517; color: #ffb3b3; }
+  .msg.errors ul { margin: 4px 0 0; padding-left: 20px; }
+  .msg.errors li { cursor: pointer; }
+  .msg.errors li:hover { text-decoration: underline; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+  #stage { flex: 1; overflow: auto; padding: 14px; }
+  #panelWrap { position: relative; max-width: 1100px; margin: 0 auto; user-select: none; }
+  #panelWrap.armed { cursor: crosshair; }
+  #panelImg { display: block; width: 100%; border-radius: 6px; }
+  #panelImg[hidden] { display: none; }
+  #noPhoto { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center;
+             background: #20242c; border: 1px dashed var(--line); border-radius: 6px; color: var(--dim); }
+  #markers { position: absolute; inset: 0; }
+
+  .marker { position: absolute; transform: translate(-50%, -50%); width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center; color: #fff;
+            font-size: 19px; font-weight: 800; cursor: grab; touch-action: none; }
+  .marker.button { border-radius: 50%; background: color-mix(in srgb, var(--btn) 88%, black); }
+  .marker.pot { border-radius: 9px; background: color-mix(in srgb, var(--pot) 90%, black); }
+  .marker.selected { outline: 3px solid #fff; }
+  .marker.flagged { box-shadow: 0 0 0 3px var(--err); }
+  .marker.simActive { filter: brightness(1.5); }
+  .marker.simOn { outline: 3px solid var(--ok); }
+  .marker .tag { position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%);
+                 font-size: 11px; font-weight: 400; white-space: nowrap; color: var(--fg);
+                 background: rgba(0,0,0,.55); padding: 0 5px; border-radius: 4px; }
+  body.simulate .marker { cursor: pointer; }
+
+  aside { width: 340px; overflow-y: auto; border-left: 1px solid var(--line);
+          background: var(--panel); padding: 12px; display: flex; flex-direction: column; gap: 14px; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+             color: var(--dim); margin: 0 0 6px; }
+  .field { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+  .field > span { width: 92px; color: var(--dim); flex: none; }
+  .edhead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bigid { font-size: 26px; font-weight: 800; padding: 2px 12px; border-radius: 8px; color: #fff; }
+  .bigid.button { background: var(--btn); } .bigid.pot { background: var(--pot); }
+  .midilbl { font-size: 15px; font-weight: 600; }
+  .hint { color: var(--warn); margin: 6px 0; }
+  .dim { color: var(--dim); }
+  textarea#synthJson { width: 100%; min-height: 64px; font-family: ui-monospace, monospace; font-size: 12px; }
+
+  #controlList .row { display: flex; align-items: center; gap: 7px; padding: 3px 6px;
+                      border-radius: 5px; cursor: pointer; font-size: 13px; }
+  #controlList .row:hover { background: #262c37; }
+  #controlList .row.selected { background: #2c3a52; }
+  #controlList .row.flagged .idbadge { outline: 2px solid var(--err); }
+  .idbadge { flex: none; width: 34px; text-align: center; font-weight: 700; border-radius: 5px; color: #fff; }
+  .idbadge.button { background: var(--btn); } .idbadge.pot { background: var(--pot); }
+  .row .lab { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .wir { color: var(--dim); white-space: nowrap; }
+  .row .unpl { color: var(--warn); font-size: 11px; }
+
+  details#hardware { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+  details#hardware summary { cursor: pointer; color: var(--dim); }
+  .muxrow { display: flex; gap: 5px; align-items: center; margin: 4px 0; }
+  .muxrow input { width: 3.6em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Chaossynth layout</h1>
+  <button id="pickRepo">Pick repo&hellip;</button>
+  <button id="reconnect" hidden>Reconnect repo</button>
+  <span id="repoStatus">no repo</span>
+  <span class="sep"></span>
+  <button id="setPhoto">Set photo&hellip;</button>
+  <span class="sep"></span>
+  <span id="modes">
+    <button data-mode="select" class="active">Select</button>
+    <button data-mode="button">+ Button</button>
+    <button data-mode="pot">+ Pot</button>
+    <button data-mode="simulate">Simulate</button>
+  </span>
+  <select id="midiOutSel" hidden></select>
+  <span class="grow"></span>
+  <span id="headerChip" class="chip ok">mapping.h: up to date</span>
+  <span id="saveStatus"></span>
+  <button id="dlJson" hidden>&#8595; mapping.json</button>
+  <button id="dlHeader" hidden>&#8595; mapping.h</button>
+</header>
+
+<div id="banner"></div>
+
+<main>
+  <div id="stage">
+    <div id="panelWrap">
+      <img id="panelImg" alt="panel photo" hidden>
+      <div id="noPhoto">No photo yet. "Set photo..." copies one to layout-tool/panel.jpg.<br>
+        You can place controls on this gray canvas meanwhile.</div>
+      <div id="markers"></div>
+    </div>
+  </div>
+  <aside>
+    <section>
+      <h2>Selected control</h2>
+      <div id="editor"><p class="dim">Nothing selected.</p></div>
+    </section>
+    <details id="hardware">
+      <summary>Hardware (expanders, muxes, I2C)</summary>
+      <div id="hardwareForm"></div>
+    </details>
+    <section id="controlList"><h2>All controls</h2><div id="controlRows"></div></section>
+  </aside>
+</main>
+
+<input type="file" id="photoInput" accept="image/*" hidden>
+
+<script id="core">
+'use strict';
+// ---- Pure logic (no DOM). check.mjs extracts and tests this block. ----
+// Contract: docs/midi-contract.md. Button ids 0-31 (note = id), pot ids 0-7
+// (cc = 20 + id), special-button CCs 40-59.
+
+const BUTTON_MAX_ID = 31, POT_MAX_ID = 7;
+const POT_CC_BASE = 20, SPECIAL_CC_MIN = 40, SPECIAL_CC_MAX = 59;
+
+function controlName(c) {
+  return c.kind + ' ' + c.id + ' "' + (c.label == null ? '' : c.label) + '"';
+}
+
+function describeWiring(w) {
+  if (!w) return '?';
+  switch (w.source) {
+    case 'pico': return 'GP' + w.gpio;
+    case 'pico_adc': return 'ADC GP' + w.gpio;
+    case 'expander': return 'exp ' + w.chip + ' pin ' + w.pin;
+    case 'mux': return 'mux ' + w.mux + ' ch ' + w.channel;
+    default: return '?';
+  }
+}
+
+function describeMidi(c) {
+  const m = c.midi || {};
+  if (m.type === 'note') return 'note ' + m.note;
+  if (m.type === 'cc') return 'CC ' + m.cc;
+  if (m.type === 'cc_momentary') return 'CC ' + m.cc + ' momentary';
+  if (m.type === 'cc_toggle') return 'CC ' + m.cc + ' toggle';
+  return '?';
+}
+
+// Physical-slot key; pico and pico_adc share the same GPIO namespace on purpose.
+function wiringKey(w) {
+  if (!w) return null;
+  switch (w.source) {
+    case 'pico': case 'pico_adc':
+      return Number.isInteger(w.gpio) ? 'gpio:' + w.gpio : null;
+    case 'expander':
+      return Number.isInteger(w.chip) && Number.isInteger(w.pin) ? 'exp:' + w.chip + ':' + w.pin : null;
+    case 'mux':
+      return Number.isInteger(w.mux) && Number.isInteger(w.channel) ? 'mux:' + w.mux + ':' + w.channel : null;
+    default: return null;
+  }
+}
+
+function midiKey(c) {
+  const m = c.midi || {};
+  if (m.type === 'note' && Number.isInteger(m.note)) return 'note:' + m.note;
+  if (m.type !== 'note' && Number.isInteger(m.cc)) return 'cc:' + m.cc;
+  return null;
+}
+
+// GPIOs claimed by the hardware config itself (I2C bus, mux select/ADC lines).
+function reservedGpios(hw) {
+  const r = new Map();
+  if (hw && hw.i2c) {
+    r.set('gpio:' + hw.i2c.sda, 'I2C SDA');
+    r.set('gpio:' + hw.i2c.scl, 'I2C SCL');
+  }
+  ((hw && hw.muxes) || []).forEach((mx, i) => {
+    for (const k of ['s0', 's1', 's2', 'adc']) r.set('gpio:' + mx[k], 'mux ' + i + ' ' + k.toUpperCase());
+  });
+  return r;
+}
+
+// Ids are never renumbered; new controls take the lowest free id for their kind.
+function nextFreeId(controls, kind) {
+  const used = new Set(controls.filter(c => c.kind === kind).map(c => c.id));
+  let i = 0;
+  while (used.has(i)) i++;
+  return i;
+}
+
+function nextFreeSpecialCC(controls) {
+  const used = new Set(controls
+    .filter(c => c.midi && (c.midi.type === 'cc_momentary' || c.midi.type === 'cc_toggle'))
+    .map(c => c.midi.cc));
+  for (let cc = SPECIAL_CC_MIN; cc <= SPECIAL_CC_MAX; cc++) if (!used.has(cc)) return cc;
+  return SPECIAL_CC_MIN;
+}
+
+// First free physical slot for a wiring source, or null if that source is full.
+function freeWiringFor(m, source) {
+  const used = new Set(m.controls.map(c => wiringKey(c.wiring)).filter(Boolean));
+  const hw = m.hardware || {};
+  const res = reservedGpios(hw);
+  const freeGpio = (lo, hi) => {
+    for (let g = lo; g <= hi; g++) if (!used.has('gpio:' + g) && !res.has('gpio:' + g)) return g;
+    return null;
+  };
+  switch (source) {
+    case 'pico': { const g = freeGpio(0, 25); return g == null ? null : { source, gpio: g }; }
+    case 'pico_adc': { const g = freeGpio(26, 29); return g == null ? null : { source, gpio: g }; }
+    case 'expander':
+      for (let chip = 0; chip < (hw.expanders || []).length; chip++)
+        for (let pin = 0; pin < 16; pin++)
+          if (!used.has('exp:' + chip + ':' + pin)) return { source, chip, pin };
+      return null;
+    case 'mux':
+      for (let mi = 0; mi < (hw.muxes || []).length; mi++)
+        for (let ch = 0; ch < 8; ch++)
+          if (!used.has('mux:' + mi + ':' + ch)) return { source, mux: mi, channel: ch };
+      return null;
+  }
+  return null;
+}
+
+const WIRING_FALLBACK = {
+  pico: { source: 'pico', gpio: 0 },
+  pico_adc: { source: 'pico_adc', gpio: 26 },
+  expander: { source: 'expander', chip: 0, pin: 0 },
+  mux: { source: 'mux', mux: 0, channel: 0 },
+};
+
+function defaultWiringForSource(m, source) {
+  return freeWiringFor(m, source) || { ...WIRING_FALLBACK[source] };
+}
+
+function defaultWiring(m, kind) {
+  const order = kind === 'button' ? ['expander', 'pico'] : ['mux', 'pico_adc'];
+  return freeWiringFor(m, order[0]) || freeWiringFor(m, order[1]) || { ...WIRING_FALLBACK[order[1]] };
+}
+
+// Returns [{msg, controls: [involved controls]}]. Empty array = mapping.h may be generated.
+function validate(m) {
+  const errs = [];
+  const err = (msg, ...controls) => errs.push({ msg, controls });
+  if (m.version !== 1) { err('unknown mapping version: ' + m.version); return errs; }
+
+  const hw = m.hardware || {};
+  const expanders = hw.expanders || [];
+  const muxes = hw.muxes || [];
+  if (!hw.i2c || !Number.isInteger(hw.i2c.sda) || !Number.isInteger(hw.i2c.scl))
+    err('hardware.i2c needs integer sda and scl');
+  expanders.forEach((a, i) => {
+    if (!Number.isInteger(a) || a < 0x20 || a > 0x27)
+      err('expander ' + i + ' address ' + a + ' outside MCP23017 range 0x20-0x27');
+  });
+  expanders.forEach((a, i) => {
+    if (expanders.indexOf(a) !== i) err('duplicate expander address 0x' + a.toString(16));
+  });
+  const adcSeen = new Map();
+  muxes.forEach((mx, i) => {
+    for (const k of ['s0', 's1', 's2', 'adc'])
+      if (!Number.isInteger(mx[k])) err('mux ' + i + ': pin ' + k + ' missing or not a number');
+    if (Number.isInteger(mx.adc) && (mx.adc < 26 || mx.adc > 29))
+      err('mux ' + i + ' ADC pin ' + mx.adc + ' is not ADC-capable (26-29)');
+    if (adcSeen.has(mx.adc)) err('mux ' + i + ' and mux ' + adcSeen.get(mx.adc) + ' share ADC pin ' + mx.adc);
+    else adcSeen.set(mx.adc, i);
+    if (hw.i2c)
+      for (const k of ['s0', 's1', 's2', 'adc'])
+        if (mx[k] === hw.i2c.sda || mx[k] === hw.i2c.scl)
+          err('mux ' + i + ' pin ' + k + ' (GP' + mx[k] + ') collides with the I2C bus');
+  });
+
+  const reserved = reservedGpios(hw);
+  const idSeen = { button: new Map(), pot: new Map() };
+  const wiringSeen = new Map();
+  const midiSeen = new Map();
+
+  for (const c of m.controls) {
+    const name = controlName(c);
+    if (c.kind !== 'button' && c.kind !== 'pot') { err(name + ': unknown kind "' + c.kind + '"', c); continue; }
+    const maxId = c.kind === 'button' ? BUTTON_MAX_ID : POT_MAX_ID;
+    if (!Number.isInteger(c.id) || c.id < 0 || c.id > maxId)
+      err(name + ': id outside 0-' + maxId, c);
+    else if (idSeen[c.kind].has(c.id))
+      err('duplicate ' + c.kind + ' id ' + c.id + ' (' + name + ' and ' + controlName(idSeen[c.kind].get(c.id)) + ')', c, idSeen[c.kind].get(c.id));
+    else idSeen[c.kind].set(c.id, c);
+
+    const w = c.wiring || {};
+    const validSources = c.kind === 'button' ? ['pico', 'expander'] : ['pico_adc', 'mux'];
+    if (!validSources.includes(w.source)) {
+      err(name + ': wiring source must be ' + validSources.join(' or ') + ', got "' + w.source + '"', c);
+    } else {
+      if (w.source === 'pico' && (!Number.isInteger(w.gpio) || w.gpio < 0 || w.gpio > 29))
+        err(name + ': pico gpio must be 0-29', c);
+      if (w.source === 'pico_adc' && (!Number.isInteger(w.gpio) || w.gpio < 26 || w.gpio > 29))
+        err(name + ': pico_adc gpio must be 26-29', c);
+      if (w.source === 'expander') {
+        if (!Number.isInteger(w.chip) || w.chip < 0 || w.chip >= expanders.length)
+          err(name + ': expander chip ' + w.chip + ' not in hardware.expanders (' + expanders.length + ' configured)', c);
+        if (!Number.isInteger(w.pin) || w.pin < 0 || w.pin > 15)
+          err(name + ': expander pin must be 0-15', c);
+      }
+      if (w.source === 'mux') {
+        if (!Number.isInteger(w.mux) || w.mux < 0 || w.mux >= muxes.length)
+          err(name + ': mux ' + w.mux + ' not in hardware.muxes (' + muxes.length + ' configured)', c);
+        if (!Number.isInteger(w.channel) || w.channel < 0 || w.channel > 7)
+          err(name + ': mux channel must be 0-7', c);
+      }
+      const key = wiringKey(w);
+      if (key) {
+        if (wiringSeen.has(key))
+          err(name + ' and ' + controlName(wiringSeen.get(key)) + ' are wired to the same place (' + describeWiring(w) + ')', c, wiringSeen.get(key));
+        else wiringSeen.set(key, c);
+        if (reserved.has(key))
+          err(name + ': ' + describeWiring(w) + ' is reserved for ' + reserved.get(key), c);
+      }
+    }
+
+    const mi = c.midi || {};
+    if (c.kind === 'pot') {
+      if (mi.type !== 'cc') err(name + ': pots must have midi type "cc"', c);
+      else if (mi.cc !== POT_CC_BASE + c.id)
+        err(name + ': pot CC must be ' + (POT_CC_BASE + c.id) + ' (20 + id), got ' + mi.cc, c);
+    } else if (mi.type === 'note') {
+      if (mi.note !== c.id) err(name + ': note must equal id (' + c.id + '), got ' + mi.note, c);
+    } else if (mi.type === 'cc_momentary' || mi.type === 'cc_toggle') {
+      if (!Number.isInteger(mi.cc) || mi.cc < SPECIAL_CC_MIN || mi.cc > SPECIAL_CC_MAX)
+        err(name + ': special-button CC must be ' + SPECIAL_CC_MIN + '-' + SPECIAL_CC_MAX + ', got ' + mi.cc, c);
+    } else {
+      err(name + ': unknown midi type "' + mi.type + '"', c);
+    }
+    const mk = midiKey(c);
+    if (mk) {
+      if (midiSeen.has(mk))
+        err(name + ' and ' + controlName(midiSeen.get(mk)) + ' emit the same MIDI (' + describeMidi(c) + ')', c, midiSeen.get(mk));
+      else midiSeen.set(mk, c);
+    }
+
+    if (c.pos != null && !(typeof c.pos.x === 'number' && c.pos.x >= 0 && c.pos.x <= 1
+                        && typeof c.pos.y === 'number' && c.pos.y >= 0 && c.pos.y <= 1))
+      err(name + ': pos must be null or {x, y} in 0-1', c);
+  }
+  return errs;
+}
+
+// firmware/chaossynth/mapping.h. Table shapes follow chaossynth.ino; the
+// ButtonType third argument for special buttons follows docs/plans/firmware.md
+// ("a type field on Button, constexpr factory style") and defaults to Note.
+function generateHeader(m) {
+  const hw = m.hardware;
+  const buttons = m.controls.filter(c => c.kind === 'button').slice().sort((a, b) => a.id - b.id);
+  const pots = m.controls.filter(c => c.kind === 'pot').slice().sort((a, b) => a.id - b.id);
+  const hex = a => '0x' + a.toString(16).toUpperCase().padStart(2, '0');
+  const ascii = s => String(s == null ? '' : s).replace(/[^\x20-\x7e]/g, '?');
+  const cmt = c => '// ' + c.kind + ' ' + c.id + ' "' + ascii(c.label) + '"';
+  const btnExpr = c => {
+    const w = c.wiring, mi = c.midi;
+    const num = mi.type === 'note' ? mi.note : mi.cc;
+    const type = mi.type === 'cc_momentary' ? ', ButtonType::CCMomentary'
+               : mi.type === 'cc_toggle' ? ', ButtonType::CCToggle' : '';
+    return w.source === 'pico'
+      ? 'Button::onPico(' + w.gpio + ', ' + num + type + ')'
+      : 'Button::onExpander(' + w.chip + ', ' + w.pin + ', ' + num + type + ')';
+  };
+  const potExpr = c => c.wiring.source === 'pico_adc'
+    ? 'Pot::onPico(' + c.wiring.gpio + ', ' + c.midi.cc + ')'
+    : 'Pot::onMux(' + c.wiring.mux + ', ' + c.wiring.channel + ', ' + c.midi.cc + ')';
+  const table = rows => {
+    const exprs = rows.map(r => r.expr + ',');
+    const w = Math.max(0, ...exprs.map(e => e.length));
+    return rows.map((r, i) => '  ' + exprs[i].padEnd(w + 2) + r.cmt);
+  };
+
+  const L = [];
+  L.push('// GENERATED by layout-tool — do not hand-edit.');
+  L.push('#pragma once');
+  L.push('');
+  L.push('constexpr uint8_t I2C_SDA_PIN = ' + hw.i2c.sda + ';');
+  L.push('constexpr uint8_t I2C_SCL_PIN = ' + hw.i2c.scl + ';');
+  L.push('');
+  L.push('constexpr uint8_t expanderAddresses[] = '
+    + (hw.expanders.length ? '{ ' + hw.expanders.map(hex).join(', ') + ' }' : '{}') + ';');
+  L.push('');
+  L.push('// { S0, S1, S2, ADC }');
+  L.push('constexpr Mux muxes[] = {');
+  for (const mx of hw.muxes) L.push('  { ' + mx.s0 + ', ' + mx.s1 + ', ' + mx.s2 + ', ' + mx.adc + ' },');
+  L.push('};');
+  L.push('');
+  L.push('// Buttons: note = control id (special buttons carry their CC instead).');
+  L.push('constexpr Button buttons[] = {');
+  L.push(...table(buttons.map(c => ({ expr: btnExpr(c), cmt: cmt(c) }))));
+  L.push('};');
+  L.push('');
+  L.push('// Pots: CC = 20 + control id.');
+  L.push('constexpr Pot pots[] = {');
+  L.push(...table(pots.map(c => ({ expr: potExpr(c), cmt: cmt(c) }))));
+  L.push('};');
+  return L.join('\n') + '\n';
+}
+
+// synth/mapping.json: controls one per line (readable diffs), unknown
+// top-level keys round-tripped, key order preserved.
+function serializeMapping(m) {
+  const L = ['{'];
+  const keys = Object.keys(m);
+  keys.forEach((k, i) => {
+    const comma = i < keys.length - 1 ? ',' : '';
+    if (k === 'controls') {
+      L.push('  "controls": [');
+      L.push(m.controls.map(c => '    ' + JSON.stringify(c)).join(',\n'));
+      L.push('  ]' + comma);
+    } else {
+      L.push('  ' + JSON.stringify(k) + ': ' + JSON.stringify(m[k]) + comma);
+    }
+  });
+  L.push('}');
+  return L.join('\n') + '\n';
+}
+
+globalThis.__core = { BUTTON_MAX_ID, POT_MAX_ID, POT_CC_BASE, SPECIAL_CC_MIN, SPECIAL_CC_MAX,
+  controlName, describeWiring, describeMidi, wiringKey, midiKey, reservedGpios,
+  nextFreeId, nextFreeSpecialCC, freeWiringFor, defaultWiringForSource, defaultWiring,
+  validate, generateHeader, serializeMapping };
+</script>
+
+<script>
+'use strict';
+// ---- App (DOM, File System Access, WebMIDI). ----
+
+const $ = s => document.querySelector(s);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const round4 = v => Math.round(v * 10000) / 10000;
+
+let mapping = null;        // the working document (mirrors synth/mapping.json)
+let dirHandle = null;      // repo root FileSystemDirectoryHandle
+let demoMode = false;      // ?demo=1: fetch seed over http, no writes
+let selected = null;
+let mode = 'select';
+let errsCache = [], errControls = new Set();
+let saveTimer = null;
+
+const hasFS = 'showDirectoryPicker' in window;
+
+// ---------- IndexedDB (persist the directory handle) ----------
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('chaossynth-layout', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbSet(k, v) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('kv', 'readwrite');
+    tx.objectStore('kv').put(v, k);
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(k) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const rq = db.transaction('kv').objectStore('kv').get(k);
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+// ---------- Banner ----------
+const bannerMsgs = new Map(); // key -> {cls, html}
+function setBanner(key, cls, html) {
+  if (html == null) bannerMsgs.delete(key); else bannerMsgs.set(key, { cls, html });
+  const b = $('#banner');
+  b.innerHTML = '';
+  for (const [, m] of bannerMsgs) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + m.cls;
+    d.innerHTML = m.html;
+    b.appendChild(d);
+  }
+  renderErrorList();
+}
+function renderErrorList() {
+  const b = $('#banner');
+  const old = b.querySelector('.errors');
+  if (old) old.remove();
+  if (!errsCache.length) return;
+  const d = document.createElement('div');
+  d.className = 'msg errors';
+  d.append(errsCache.length + ' problem' + (errsCache.length > 1 ? 's' : '')
+    + ' — mapping.json is still saved, mapping.h is NOT regenerated until this is empty:');
+  const ul = document.createElement('ul');
+  errsCache.forEach(e => {
+    const li = document.createElement('li');
+    li.textContent = e.msg;
+    if (e.controls && e.controls[0]) li.addEventListener('click', () => select(e.controls[0]));
+    ul.appendChild(li);
+  });
+  d.appendChild(ul);
+  b.appendChild(d);
+}
+
+// ---------- Save pipeline ----------
+function setSaveStatus(text, isErr) {
+  const s = $('#saveStatus');
+  s.textContent = text;
+  s.classList.toggle('err', !!isErr);
+}
+function scheduleSave() {
+  if (!mapping) return;
+  setSaveStatus('unsaved…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 500);
+}
+async function saveNow() {
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!mapping) return;
+  if (!dirHandle) { setSaveStatus(demoMode ? 'demo: writes disabled' : 'no repo: use downloads'); return; }
+  const errs = validate(mapping);
+  try {
+    await writeFile(['synth', 'mapping.json'], serializeMapping(mapping));
+    if (errs.length === 0) await writeFile(['firmware', 'chaossynth', 'mapping.h'], generateHeader(mapping));
+    const t = new Date().toTimeString().slice(0, 8);
+    setSaveStatus('saved ' + t + (errs.length ? ' (mapping.json only)' : ''));
+    setBanner('writefail', null, null);
+  } catch (e) {
+    setSaveStatus('WRITE FAILED', true);
+    setBanner('writefail', 'fatal', 'Writing files failed: ' + e.name + ' — ' + e.message
+      + '. Fix (reconnect the repo?) and edit anything to retry.');
+    if (e.name === 'NotAllowedError') showReconnect();
+  }
+}
+async function writeFile(path, contents) {
+  let dir = dirHandle;
+  for (const seg of path.slice(0, -1)) dir = await dir.getDirectoryHandle(seg, { create: true });
+  const fh = await dir.getFileHandle(path[path.length - 1], { create: true });
+  const w = await fh.createWritable();
+  await w.write(contents);
+  await w.close();
+}
+// Flush the debounce if the tab goes away.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && saveTimer) saveNow();
+});
+
+// ---------- Repo connection ----------
+function defaultMapping() {
+  return {
+    version: 1,
+    image: 'layout-tool/panel.jpg',
+    hardware: { i2c: { sda: 4, scl: 5 }, expanders: [0x20], muxes: [{ s0: 6, s1: 7, s2: 8, adc: 26 }] },
+    controls: [],
+  };
+}
+async function readRepoText(path) {
+  let dir = dirHandle;
+  for (const seg of path.slice(0, -1)) dir = await dir.getDirectoryHandle(seg);
+  const fh = await dir.getFileHandle(path[path.length - 1]);
+  return (await fh.getFile()).text();
+}
+async function loadRepo() {
+  $('#repoStatus').textContent = dirHandle.name + '/';
+  $('#repoStatus').classList.add('on');
+  $('#reconnect').hidden = true;
+
+  let looksRight = false;
+  for (const d of ['synth', 'firmware']) {
+    try { await dirHandle.getDirectoryHandle(d); looksRight = true; } catch (e) { /* absent is fine */ }
+  }
+  setBanner('wrongdir', 'fatal', looksRight ? null
+    : 'Warning: "' + dirHandle.name + '" has no synth/ or firmware/ directory — is this really the chaossynth repo?');
+
+  let text = null;
+  try { text = await readRepoText(['synth', 'mapping.json']); } catch (e) { /* fresh repo */ }
+  if (text !== null) {
+    let data;
+    try { data = JSON.parse(text); } catch (e) {
+      setBanner('load', 'fatal', 'synth/mapping.json is not valid JSON (' + e.message + '). Refusing to touch it.');
+      return;
+    }
+    if (data.version !== 1) {
+      setBanner('load', 'fatal', 'synth/mapping.json has version ' + JSON.stringify(data.version)
+        + '; this tool only knows version 1. Refusing to touch it.');
+      return;
+    }
+    mapping = data;
+  } else {
+    mapping = defaultMapping();
+    setBanner('load', 'info', 'No synth/mapping.json yet — starting fresh. It is created on first edit.');
+  }
+
+  try {
+    let dir = await dirHandle.getDirectoryHandle('layout-tool');
+    const fh = await dir.getFileHandle('panel.jpg');
+    showPhoto(await fh.getFile());
+  } catch (e) { /* no photo yet */ }
+
+  renderHardware();
+  refresh();
+  setSaveStatus('loaded');
+}
+function showReconnect() {
+  $('#reconnect').hidden = false;
+  $('#repoStatus').textContent = 'permission needed';
+  $('#repoStatus').classList.remove('on');
+}
+$('#pickRepo').addEventListener('click', async () => {
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) { return; /* user cancelled */ }
+  await idbSet('repoDir', dirHandle);
+  await loadRepo();
+});
+$('#reconnect').addEventListener('click', async () => {
+  if (!dirHandle) return;
+  const p = await dirHandle.requestPermission({ mode: 'readwrite' });
+  if (p === 'granted') await loadRepo();
+});
+
+// ---------- Photo ----------
+function showPhoto(fileOrBlob) {
+  const img = $('#panelImg');
+  img.src = URL.createObjectURL(fileOrBlob);
+  img.hidden = false;
+  $('#noPhoto').style.display = 'none';
+}
+$('#setPhoto').addEventListener('click', async () => {
+  if ('showOpenFilePicker' in window) {
+    try {
+      const [fh] = await window.showOpenFilePicker({
+        types: [{ description: 'Images', accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] } }],
+      });
+      await applyPhoto(await fh.getFile());
+    } catch (e) { /* cancelled */ }
+  } else {
+    $('#photoInput').click();
+  }
+});
+$('#photoInput').addEventListener('change', e => {
+  if (e.target.files[0]) applyPhoto(e.target.files[0]);
+});
+async function applyPhoto(file) {
+  showPhoto(file);
+  if (!mapping) return;
+  if (mapping.image !== 'layout-tool/panel.jpg') { mapping.image = 'layout-tool/panel.jpg'; scheduleSave(); }
+  if (dirHandle) {
+    try {
+      const dir = await dirHandle.getDirectoryHandle('layout-tool', { create: true });
+      const fh = await dir.getFileHandle('panel.jpg', { create: true });
+      const w = await fh.createWritable();
+      await w.write(await file.arrayBuffer());
+      await w.close();
+      setBanner('photo', null, null);
+    } catch (e) {
+      setBanner('photo', 'fatal', 'Could not save the photo to layout-tool/panel.jpg: ' + e.message);
+    }
+  } else {
+    setBanner('photo', 'info', 'Photo is shown but NOT saved — no repo connection.');
+  }
+}
+
+// ---------- Modes ----------
+function setMode(m) {
+  mode = m;
+  document.body.classList.toggle('simulate', m === 'simulate');
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  $('#panelWrap').classList.toggle('armed', m === 'button' || m === 'pot');
+  $('#midiOutSel').hidden = m !== 'simulate';
+  if (m === 'simulate') initMidi();
+  else setBanner('midi', null, null);
+}
+document.querySelectorAll('#modes button').forEach(b =>
+  b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+// ---------- Selection & placement ----------
+const keyOf = c => c.kind + ':' + c.id;
+function findControl(k) { return mapping.controls.find(c => keyOf(c) === k); }
+function select(c) { selected = c; refresh(); }
+
+function addControl(kind, pos) {
+  const id = nextFreeId(mapping.controls, kind);
+  const maxId = kind === 'button' ? BUTTON_MAX_ID : POT_MAX_ID;
+  if (id > maxId) { setBanner('full', 'fatal', 'All ' + (maxId + 1) + ' ' + kind + ' ids are in use.'); return; }
+  setBanner('full', null, null);
+  const c = {
+    id, kind,
+    label: (kind === 'button' ? 'B' : 'P') + id,
+    pos,
+    wiring: defaultWiring(mapping, kind),
+    midi: kind === 'button' ? { type: 'note', note: id } : { type: 'cc', cc: POT_CC_BASE + id },
+    synth: {},
+  };
+  mapping.controls.push(c);
+  selected = c;
+  refresh();
+  scheduleSave();
+}
+function deleteControl(c) {
+  const i = mapping.controls.indexOf(c);
+  if (i < 0) return;
+  mapping.controls.splice(i, 1);
+  if (selected === c) selected = null;
+  refresh();
+  scheduleSave();
+}
+
+$('#panelWrap').addEventListener('click', e => {
+  if (!mapping || e.target.closest('.marker')) return;
+  const r = $('#panelWrap').getBoundingClientRect();
+  const pos = { x: round4(clamp((e.clientX - r.left) / r.width, 0, 1)),
+                y: round4(clamp((e.clientY - r.top) / r.height, 0, 1)) };
+  if (mode === 'button' || mode === 'pot') { addControl(mode, pos); return; }
+  if (mode === 'select') {
+    if (selected && selected.pos == null) { selected.pos = pos; refresh(); scheduleSave(); }
+    else if (selected) select(null);
+  }
+});
+
+document.addEventListener('keydown', e => {
+  const t = e.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+  if (e.key === 'Escape') setMode('select');
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selected && mode !== 'simulate') {
+    e.preventDefault();
+    deleteControl(selected);
+  }
+});
+
+// ---------- Markers (render + drag + simulate) ----------
+let drag = null;     // {c, el, sx, sy, moved}
+let simDrag = null;  // {c, el, startY, startVal}
+let simBtn = null;   // {c, el}
+const toggleState = new Map(), simVal = new Map();
+
+function renderMarkers() {
+  const host = $('#markers');
+  host.innerHTML = '';
+  if (!mapping) return;
+  for (const c of mapping.controls) {
+    if (c.pos == null) continue;
+    const mk = document.createElement('div');
+    mk.className = 'marker ' + c.kind
+      + (c === selected ? ' selected' : '')
+      + (errControls.has(c) ? ' flagged' : '')
+      + (toggleState.get(keyOf(c)) ? ' simOn' : '');
+    mk.dataset.k = keyOf(c);
+    mk.style.left = (c.pos.x * 100) + '%';
+    mk.style.top = (c.pos.y * 100) + '%';
+    mk.textContent = c.id;
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = c.label || '';
+    mk.appendChild(tag);
+    host.appendChild(mk);
+  }
+}
+
+$('#markers').addEventListener('pointerdown', e => {
+  const mk = e.target.closest('.marker');
+  if (!mk || !mapping) return;
+  const c = findControl(mk.dataset.k);
+  if (!c) return;
+  e.preventDefault();
+  if (mode === 'simulate') { simDown(c, mk, e); return; }
+  mk.setPointerCapture(e.pointerId);
+  drag = { c, el: mk, sx: e.clientX, sy: e.clientY, moved: false };
+});
+$('#markers').addEventListener('pointermove', e => {
+  if (simDrag) {
+    const v = clamp(Math.round(simDrag.startVal + (simDrag.startY - e.clientY) / 2), 0, 127);
+    if (v !== simVal.get(keyOf(simDrag.c))) {
+      simVal.set(keyOf(simDrag.c), v);
+      midiSend([0xB0, simDrag.c.midi.cc, v]);
+      simDrag.el.querySelector('.tag').textContent = 'CC ' + simDrag.c.midi.cc + ' = ' + v;
+    }
+    return;
+  }
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+  drag.moved = true;
+  const r = $('#panelWrap').getBoundingClientRect();
+  const x = clamp((e.clientX - r.left) / r.width, 0, 1);
+  const y = clamp((e.clientY - r.top) / r.height, 0, 1);
+  drag.c.pos = { x: round4(x), y: round4(y) };
+  drag.el.style.left = (x * 100) + '%';
+  drag.el.style.top = (y * 100) + '%';
+});
+$('#markers').addEventListener('pointerup', e => {
+  if (simDrag || simBtn) { simUp(); return; }
+  if (!drag) return;
+  const { c, moved } = drag;
+  drag = null;
+  if (moved) { refresh({ editor: false }); scheduleSave(); }
+  else select(c);
+});
+$('#markers').addEventListener('pointercancel', () => {
+  if (simDrag || simBtn) simUp();
+  if (drag) { drag = null; refresh({ editor: false }); scheduleSave(); }
+});
+
+// ---------- Simulate (WebMIDI) ----------
+let midiOut = null;
+async function initMidi() {
+  if (midiOut) return;
+  if (!navigator.requestMIDIAccess) {
+    setBanner('midi', 'fatal', 'WebMIDI is not available in this browser.');
+    return;
+  }
+  try {
+    const access = await navigator.requestMIDIAccess();
+    const sel = $('#midiOutSel');
+    const rebuild = () => {
+      sel.innerHTML = '';
+      for (const out of access.outputs.values()) {
+        const o = document.createElement('option');
+        o.value = out.id;
+        o.textContent = 'MIDI out: ' + out.name;
+        sel.appendChild(o);
+      }
+      midiOut = access.outputs.get(sel.value) || null;
+      setBanner('midi', midiOut ? null : 'fatal', midiOut ? null
+        : 'No MIDI outputs found. On a Mac, enable the IAC Driver bus in Audio MIDI Setup.');
+    };
+    rebuild();
+    access.onstatechange = rebuild;
+    sel.onchange = () => { midiOut = access.outputs.get(sel.value) || null; };
+  } catch (e) {
+    setBanner('midi', 'fatal', 'WebMIDI access refused: ' + e.message);
+  }
+}
+function midiSend(bytes) { if (midiOut) midiOut.send(bytes); }
+function simDown(c, mk, e) {
+  if (c.kind === 'button') {
+    const mi = c.midi;
+    if (mi.type === 'note') midiSend([0x90, mi.note, 127]);
+    else if (mi.type === 'cc_momentary') midiSend([0xB0, mi.cc, 127]);
+    else if (mi.type === 'cc_toggle') {
+      const on = !toggleState.get(keyOf(c));
+      toggleState.set(keyOf(c), on);
+      midiSend([0xB0, mi.cc, on ? 127 : 0]);
+      mk.classList.toggle('simOn', on);
+    }
+    mk.classList.add('simActive');
+    simBtn = { c, el: mk };
+  } else {
+    mk.setPointerCapture(e.pointerId);
+    simDrag = { c, el: mk, startY: e.clientY, startVal: simVal.get(keyOf(c)) ?? 64 };
+  }
+}
+function simUp() {
+  if (simBtn) {
+    const mi = simBtn.c.midi;
+    if (mi.type === 'note') midiSend([0x80, mi.note, 0]);
+    else if (mi.type === 'cc_momentary') midiSend([0xB0, mi.cc, 0]);
+    simBtn.el.classList.remove('simActive');
+    simBtn = null;
+  }
+  if (simDrag) {
+    simDrag.el.querySelector('.tag').textContent = simDrag.c.label || '';
+    simDrag = null;
+  }
+}
+
+// ---------- Editor sidebar ----------
+function numInput(value, min, max, oninput) {
+  const i = document.createElement('input');
+  i.type = 'number'; i.min = min; i.max = max; i.value = value;
+  i.addEventListener('input', () => {
+    const v = parseInt(i.value, 10);
+    if (Number.isInteger(v)) oninput(v);
+  });
+  return i;
+}
+function fieldRow(label, ...nodes) {
+  const f = document.createElement('div');
+  f.className = 'field';
+  const s = document.createElement('span');
+  s.textContent = label;
+  f.append(s, ...nodes);
+  return f;
+}
+
+function renderEditor() {
+  const host = $('#editor');
+  host.innerHTML = '';
+  if (!mapping || !selected) {
+    host.innerHTML = '<p class="dim">Nothing selected. Click a marker or list row; arm "+ Button" / "+ Pot" and click the photo to add.</p>';
+    return;
+  }
+  const c = selected;
+
+  const head = document.createElement('div');
+  head.className = 'edhead';
+  const big = document.createElement('span');
+  big.className = 'bigid ' + c.kind;
+  big.textContent = (c.kind === 'button' ? 'B' : 'P') + c.id;
+  const mlbl = document.createElement('span');
+  mlbl.className = 'midilbl';
+  mlbl.textContent = describeMidi(c);
+  const del = document.createElement('button');
+  del.className = 'danger';
+  del.textContent = 'delete';
+  del.addEventListener('click', () => deleteControl(c));
+  head.append(big, mlbl, del);
+  host.appendChild(head);
+
+  if (c.pos == null) {
+    const h = document.createElement('p');
+    h.className = 'hint';
+    h.textContent = 'Unplaced — click the photo to place it.';
+    host.appendChild(h);
+  }
+
+  const lab = document.createElement('input');
+  lab.value = c.label || '';
+  lab.style.flex = '1';
+  lab.addEventListener('input', () => { c.label = lab.value; refresh({ editor: false }); scheduleSave(); });
+  host.appendChild(fieldRow('label', lab));
+
+  // wiring
+  const src = document.createElement('select');
+  const sources = c.kind === 'button' ? ['pico', 'expander'] : ['pico_adc', 'mux'];
+  for (const s of sources) {
+    const o = document.createElement('option');
+    o.value = s;
+    o.textContent = { pico: 'direct GPIO', expander: 'MCP23017 expander', pico_adc: 'direct ADC', mux: '4051 mux' }[s];
+    src.appendChild(o);
+  }
+  src.value = sources.includes((c.wiring || {}).source) ? c.wiring.source : sources[0];
+  src.addEventListener('change', () => {
+    c.wiring = defaultWiringForSource(mapping, src.value);
+    refresh(); scheduleSave();
+  });
+  host.appendChild(fieldRow('wiring', src));
+
+  const w = c.wiring || {};
+  const wire = (key, min, max, label) =>
+    host.appendChild(fieldRow(label, numInput(w[key] ?? min, min, max, v => { w[key] = v; refresh({ editor: false }); scheduleSave(); })));
+  switch (w.source) {
+    case 'pico': wire('gpio', 0, 29, 'GPIO'); break;
+    case 'pico_adc': wire('gpio', 26, 29, 'ADC GPIO'); break;
+    case 'expander': wire('chip', 0, 7, 'chip #'); wire('pin', 0, 15, 'pin (0-15)'); break;
+    case 'mux': wire('mux', 0, 7, 'mux #'); wire('channel', 0, 7, 'channel'); break;
+  }
+
+  // midi
+  if (c.kind === 'button') {
+    const mt = document.createElement('select');
+    for (const t of ['note', 'cc_momentary', 'cc_toggle']) {
+      const o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      mt.appendChild(o);
+    }
+    mt.value = (c.midi || {}).type || 'note';
+    mt.addEventListener('change', () => {
+      if (mt.value === 'note') c.midi = { type: 'note', note: c.id };
+      else {
+        const keep = c.midi && Number.isInteger(c.midi.cc)
+          && c.midi.cc >= SPECIAL_CC_MIN && c.midi.cc <= SPECIAL_CC_MAX;
+        c.midi = { type: mt.value, cc: keep ? c.midi.cc : nextFreeSpecialCC(mapping.controls.filter(x => x !== c)) };
+      }
+      refresh(); scheduleSave();
+    });
+    host.appendChild(fieldRow('midi type', mt));
+    if (c.midi.type === 'note') {
+      const s = document.createElement('span');
+      s.className = 'dim';
+      s.textContent = 'note ' + c.id + ' (= id, fixed)';
+      host.appendChild(fieldRow('note', s));
+    } else {
+      host.appendChild(fieldRow('CC (40-59)', numInput(c.midi.cc, SPECIAL_CC_MIN, SPECIAL_CC_MAX,
+        v => { c.midi.cc = v; refresh({ editor: false }); scheduleSave(); })));
+    }
+  } else {
+    const s = document.createElement('span');
+    s.className = 'dim';
+    s.textContent = 'CC ' + (POT_CC_BASE + c.id) + ' (= 20 + id, fixed)';
+    host.appendChild(fieldRow('midi', s));
+  }
+
+  // synth blob (owned by patch design; round-tripped untouched unless edited here)
+  const sh = document.createElement('div');
+  sh.className = 'field';
+  sh.innerHTML = '<span>synth</span>';
+  host.appendChild(sh);
+  const ta = document.createElement('textarea');
+  ta.id = 'synthJson';
+  ta.value = JSON.stringify(c.synth ?? {});
+  ta.addEventListener('input', () => {
+    try {
+      c.synth = JSON.parse(ta.value);
+      ta.classList.remove('invalid');
+      scheduleSave();
+    } catch (e) {
+      ta.classList.add('invalid'); // not saved until it parses
+    }
+  });
+  host.appendChild(ta);
+}
+
+// ---------- Hardware pane ----------
+function renderHardware() {
+  const host = $('#hardwareForm');
+  host.innerHTML = '';
+  if (!mapping) return;
+  const hw = mapping.hardware;
+  const changed = () => { renderHardware(); refresh(); scheduleSave(); };
+
+  host.appendChild(fieldRow('I2C SDA', numInput(hw.i2c.sda, 0, 29, v => { hw.i2c.sda = v; refresh({ editor: false }); scheduleSave(); })));
+  host.appendChild(fieldRow('I2C SCL', numInput(hw.i2c.scl, 0, 29, v => { hw.i2c.scl = v; refresh({ editor: false }); scheduleSave(); })));
+
+  const exp = document.createElement('input');
+  exp.value = hw.expanders.map(a => '0x' + a.toString(16)).join(', ');
+  exp.addEventListener('change', () => {
+    hw.expanders = exp.value.split(',').map(s => Number(s.trim())).filter(Number.isInteger);
+    changed();
+  });
+  host.appendChild(fieldRow('expanders', exp));
+
+  hw.muxes.forEach((mx, i) => {
+    const row = document.createElement('div');
+    row.className = 'muxrow';
+    row.append('mux ' + i + ':');
+    for (const k of ['s0', 's1', 's2', 'adc'])
+      row.appendChild(numInput(mx[k], 0, 29, v => { mx[k] = v; refresh({ editor: false }); scheduleSave(); }));
+    const rm = document.createElement('button');
+    rm.textContent = '×';
+    rm.title = 'remove mux ' + i;
+    rm.addEventListener('click', () => { hw.muxes.splice(i, 1); changed(); });
+    row.appendChild(rm);
+    host.appendChild(row);
+  });
+  const add = document.createElement('button');
+  add.textContent = '+ mux';
+  add.addEventListener('click', () => { hw.muxes.push({ s0: 6, s1: 7, s2: 8, adc: 26 }); changed(); });
+  host.appendChild(add);
+}
+
+// ---------- Control list ----------
+function renderList() {
+  const host = $('#controlRows');
+  host.innerHTML = '';
+  if (!mapping) return;
+  const sorted = mapping.controls.slice().sort((a, b) =>
+    a.kind === b.kind ? a.id - b.id : (a.kind === 'button' ? -1 : 1));
+  for (const c of sorted) {
+    const row = document.createElement('div');
+    row.className = 'row' + (c === selected ? ' selected' : '') + (errControls.has(c) ? ' flagged' : '');
+    const badge = document.createElement('span');
+    badge.className = 'idbadge ' + c.kind;
+    badge.textContent = (c.kind === 'button' ? 'B' : 'P') + c.id;
+    const lab = document.createElement('span');
+    lab.className = 'lab';
+    lab.textContent = c.label || '';
+    const wir = document.createElement('span');
+    wir.className = 'wir';
+    wir.textContent = describeWiring(c.wiring) + ' → ' + describeMidi(c);
+    row.append(badge, lab, wir);
+    if (c.pos == null) {
+      const u = document.createElement('span');
+      u.className = 'unpl';
+      u.textContent = 'unplaced';
+      row.appendChild(u);
+    }
+    row.addEventListener('click', () => select(c));
+    host.appendChild(row);
+  }
+  if (!mapping.controls.length) host.innerHTML = '<p class="dim">No controls yet.</p>';
+}
+
+// ---------- Downloads (non-Chrome / no-repo fallback) ----------
+function download(name, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+$('#dlJson').addEventListener('click', () => mapping && download('mapping.json', serializeMapping(mapping)));
+$('#dlHeader').addEventListener('click', () => mapping && download('mapping.h', generateHeader(mapping)));
+
+// ---------- Top-level refresh ----------
+function refresh(opts = {}) {
+  errsCache = mapping ? validate(mapping) : [];
+  errControls = new Set();
+  errsCache.forEach(e => (e.controls || []).forEach(c => errControls.add(c)));
+
+  const chip = $('#headerChip');
+  if (!mapping) { chip.className = 'chip warn'; chip.textContent = 'no mapping loaded'; }
+  else if (errsCache.length) {
+    chip.className = 'chip err';
+    chip.textContent = 'mapping.h NOT regenerated (' + errsCache.length + ' error' + (errsCache.length > 1 ? 's' : '') + ')';
+  } else {
+    chip.className = 'chip ok';
+    chip.textContent = 'mapping.h: OK to generate';
+  }
+  const showDl = mapping && !dirHandle;
+  $('#dlJson').hidden = !showDl;
+  $('#dlHeader').hidden = !showDl;
+  $('#dlHeader').disabled = errsCache.length > 0;
+  $('#dlHeader').title = errsCache.length ? 'fix the errors first' : '';
+
+  renderMarkers();
+  renderList();
+  renderErrorList();
+  if (opts.editor !== false) renderEditor();
+}
+
+// ---------- Boot ----------
+(async function boot() {
+  if (!hasFS) {
+    $('#pickRepo').hidden = true;
+    setBanner('nofs', 'info', 'This browser has no File System Access API — use Chrome for live'
+      + ' writing. Downloads of mapping.json / mapping.h still work.');
+  }
+  if (new URLSearchParams(location.search).has('demo')) {
+    demoMode = true;
+    $('#pickRepo').hidden = true;
+    setBanner('demo', 'info', 'DEMO mode: showing ../synth/mapping.json read-only, writes disabled.');
+    try {
+      mapping = await (await fetch('../synth/mapping.json')).json();
+      if (mapping.version !== 1) throw new Error('unknown version ' + mapping.version);
+    } catch (e) {
+      setBanner('demo', 'fatal', 'Demo load failed: ' + e.message + ' (serve the repo root over http).');
+      mapping = defaultMapping();
+    }
+    renderHardware();
+    refresh();
+    return;
+  }
+  if (hasFS) {
+    try {
+      const h = await idbGet('repoDir');
+      if (h) {
+        dirHandle = h;
+        const p = await h.queryPermission({ mode: 'readwrite' });
+        if (p === 'granted') await loadRepo();
+        else showReconnect();
+      }
+    } catch (e) { /* first run */ }
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
