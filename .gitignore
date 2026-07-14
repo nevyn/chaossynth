@@ -1,0 +1,4 @@
+.DS_Store
+pi-image/secrets.env
+synth/tools/.venv/
+*.img
