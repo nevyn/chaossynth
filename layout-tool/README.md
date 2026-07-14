@@ -37,25 +37,20 @@ node check.mjs --update   # regenerate golden-mapping.h after generator changes
 ```
 
 `golden-mapping.h` is the header generated from the seed `synth/mapping.json`.
-The firmware workstream should diff it against its checked-in
-`firmware/chaossynth/mapping.h` - they must match semantically.
-
-Convergence note for firmware: special buttons are emitted as
-`Button::onPico(gpio, cc, ButtonType::CCMomentary)` /
-`ButtonType::CCToggle` (third arg defaulting to `ButtonType::Note`), guessing
-at firmware.md's "type field on Button, constexpr factory style". The seed has
-no special buttons so the golden diff is unaffected - sync the spelling when
-firmware's Button struct lands.
+Verified 2026-07-14 against the firmware workstream's deliverables: it matches
+the checked-in `firmware/chaossynth/mapping.h` semantically (comments and
+whitespace differ), and `firmware/build.sh` compiles clean with a
+tool-generated header that includes a `BTN_CC_TOGGLE` special button. If the
+Button/Pot/Mux structs in chaossynth.ino ever change shape, change
+`generateHeader()` with them and re-run `--update`.
 
 ## Hardware checklist (Nevyn)
 
 - [ ] Real Chrome, real repo: pick repo, set photo, place 2 buttons + 1 pot,
       fill wiring -> `git diff` shows sane mapping.json + mapping.h; reload the
-      page -> everything restored. NOTE: a clean save overwrites
-      `firmware/chaossynth/mapping.h` - diff, don't commit blindly, while the
-      firmware workstream is still landing.
+      page -> everything restored. NOTE: a clean save rewrites
+      `firmware/chaossynth/mapping.h` (same content, different comments) -
+      that first cosmetic diff is expected.
 - [ ] Simulate mode against the IAC bus: buttons send notes, pots sweep CCs
       (WebMIDI was permission-blocked in the embedded test browser, so this is
       unverified).
-- [ ] `firmware/build.sh` compiles with a tool-generated mapping.h (blocked on
-      the firmware workstream shipping build.sh).

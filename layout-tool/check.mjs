@@ -58,6 +58,11 @@ check('seed mapping.json validates clean', seedErrs.length === 0,
   sp.controls[sp.controls.length - 1].wiring = { source: 'pico', gpio: 9 };
   check('valid cc_toggle button passes', core.validate(sp).length === 0,
     core.validate(sp).map(e => e.msg).join('; '));
+  // Spelling must match chaossynth.ino's ButtonType enum, and stay optional
+  // for plain note buttons.
+  const spHeader = core.generateHeader(sp);
+  check('special button emits BTN_CC_TOGGLE', spHeader.includes('Button::onPico(9, 40, BTN_CC_TOGGLE),'));
+  check('note buttons omit the type argument', spHeader.includes('Button::onPico(2, 0),'));
   sp.controls[sp.controls.length - 1].midi.cc = 39;
   check('special cc below 40 rejected', core.validate(sp).some(e => e.msg.includes('40-59')));
 }

@@ -381,9 +381,9 @@ function validate(m) {
   return errs;
 }
 
-// firmware/chaossynth/mapping.h. Table shapes follow chaossynth.ino; the
-// ButtonType third argument for special buttons follows docs/plans/firmware.md
-// ("a type field on Button, constexpr factory style") and defaults to Note.
+// firmware/chaossynth/mapping.h. Table shapes and the BTN_* ButtonType
+// enumerators match chaossynth.ino's Button/Pot/Mux structs; the type
+// argument is omitted for plain note buttons (defaults to BTN_NOTE).
 function generateHeader(m) {
   const hw = m.hardware;
   const buttons = m.controls.filter(c => c.kind === 'button').slice().sort((a, b) => a.id - b.id);
@@ -394,8 +394,8 @@ function generateHeader(m) {
   const btnExpr = c => {
     const w = c.wiring, mi = c.midi;
     const num = mi.type === 'note' ? mi.note : mi.cc;
-    const type = mi.type === 'cc_momentary' ? ', ButtonType::CCMomentary'
-               : mi.type === 'cc_toggle' ? ', ButtonType::CCToggle' : '';
+    const type = mi.type === 'cc_momentary' ? ', BTN_CC_MOMENTARY'
+               : mi.type === 'cc_toggle' ? ', BTN_CC_TOGGLE' : '';
     return w.source === 'pico'
       ? 'Button::onPico(' + w.gpio + ', ' + num + type + ')'
       : 'Button::onExpander(' + w.chip + ', ' + w.pin + ', ' + num + type + ')';
