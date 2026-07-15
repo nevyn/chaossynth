@@ -48,7 +48,8 @@ rm -f /etc/asound.conf
 say "audio: device for the synth (synth/run.sh reads CHAOS_ALSA_DEV)"
 cat >/etc/default/chaossynth <<EOF
 # Written by pi-image/provision.sh. The one knob for the output device.
-CHAOS_ALSA_DEV=hw:$AUDIO_CARD
+# plughw, NOT hw: jackd via direct hw: mangles bcm2835 audio (see run.sh).
+CHAOS_ALSA_DEV=plughw:$AUDIO_CARD
 # Debian's sclang is Qt-built; without a display it aborts at startup unless
 # Qt renders offscreen. Missing this = silent crash-looping service.
 QT_QPA_PLATFORM=offscreen

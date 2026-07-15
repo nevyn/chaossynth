@@ -67,10 +67,11 @@ the synth).
 The device name lives in ONE place: `AUDIO_CARD` at the top of
 `provision.sh` (currently `Headphones`, the 3.5 mm jack). Swapping to a
 USB DAC later = change that name (`aplay -l` on the Pi lists cards),
-re-run `./provision.sh`. It lands in two spots on the Pi: `/etc/asound.conf`
-(ALSA default) and `/etc/default/chaossynth`, which the service passes to
-`synth/run.sh` as `CHAOS_ALSA_DEV=hw:<card>` (the knob run.sh already
-reads for its jackd device).
+re-run `./provision.sh`. It lands in `/etc/default/chaossynth`, which the
+service passes to `synth/run.sh` as `CHAOS_ALSA_DEV=plughw:<card>` (the
+knob run.sh reads for its jackd device). It must stay `plughw:` — jackd
+via direct `hw:` mangles bcm2835 audio into click-storm noise (found the
+hard way 07-15; `aplay` sounding clean does NOT clear `hw:` for jack).
 
 ## RTC (DS3231 HAT)
 

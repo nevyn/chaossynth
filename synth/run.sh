@@ -40,7 +40,10 @@ if [ "$PLATFORM" = "pi" ]; then
   # scsynth on Linux speaks JACK only. Run jackd on the headphone jack unless
   # something (systemd, a previous run) already started it. -P: playback-only,
   # the jack has no capture side.
-  ALSA_DEV="${CHAOS_ALSA_DEV:-hw:Headphones}"
+  # plughw, NOT hw: jackd's direct hw: access mangles bcm2835 audio into
+  # click-storm noise (heard 07-15 on real hardware; a bare jack_metro
+  # reproduced it, plughw fixed it). aplay-clean does not mean hw:-clean.
+  ALSA_DEV="${CHAOS_ALSA_DEV:-plughw:Headphones}"
   if ! pgrep -x jackd >/dev/null 2>&1; then
     echo "chaossynth: starting jackd on $ALSA_DEV"
     jackd -d alsa -d "$ALSA_DEV" -P -r 48000 -p 1024 -n 3 &
