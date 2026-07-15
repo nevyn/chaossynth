@@ -37,11 +37,13 @@ apt-get update
 # (raspi-config otherwise apt-installs it lazily on first enable).
 apt-get install -y supercollider sc3-plugins rsync alsa-utils overlayroot
 
-say "audio: default ALSA card -> $AUDIO_CARD"
-cat >/etc/asound.conf <<EOF
-defaults.pcm.card $AUDIO_CARD
-defaults.ctl.card $AUDIO_CARD
-EOF
+# No /etc/asound.conf on purpose. The synth opens hw:$AUDIO_CARD through jack
+# explicitly, and the mixer step below targets the card by name -- nothing here
+# needs a system-default ALSA device. A malformed asound.conf (e.g. the old
+# `defaults.pcm.card <name>`, which wants an integer index) poisons ALL alsa
+# parsing, jackd included, so actively remove any stale one to self-heal.
+say "audio: removing any stale /etc/asound.conf (a bad one breaks jackd)"
+rm -f /etc/asound.conf
 
 say "audio: device for the synth (synth/run.sh reads CHAOS_ALSA_DEV)"
 cat >/etc/default/chaossynth <<EOF
