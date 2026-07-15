@@ -4,6 +4,25 @@ From packed parts to a running installation at Borderland, and how to operate it
 there. Agents: keep this in sync when you change service names, paths, or
 commands — this doc gets read in a field, on a phone, with a hangover.
 
+## Before you leave home (order matters)
+
+The last two steps of bench prep, in this exact order — both need network and a
+read-write SD, so they must happen before lockdown:
+
+1. **RTC first.** With the DS3231 HAT seated (CR1220 battery in!) and the Pi still
+   on wifi so its clock is NTP-correct: `pi-image/rtc.sh` → `ssh chaos@chaossynth.local
+   'sudo reboot'` → `pi-image/rtc.sh` again. The second pass writes the true time
+   into the battery and verifies. Without this, a power cut at the festival (no
+   network there) rewinds the clock, and any time-of-day behaviour — e.g. quiet
+   hours so the 4am beats don't wake the field — runs on a wrong clock.
+2. **Overlayfs last.** `pi-image/overlayfs.sh on` is the final bench step before
+   packing. It makes the root read-only, so nothing after it persists — including
+   the RTC overlay line and a fresh clock write. That's why RTC comes first. The
+   battery-backed clock keeps working read-only (it only ever sets the system time
+   at boot, no writes needed).
+
+To change either later: `overlayfs.sh off`, do the thing, `overlayfs.sh on` again.
+
 ## Assembly (order matters)
 
 1. Structure up, anchored, rain cover on.
