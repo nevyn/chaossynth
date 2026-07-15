@@ -15,7 +15,7 @@ Signal chain: panel (RP2350-Zero) → USB MIDI → Pi 4 (SuperCollider) → spea
 | 3 | [plans/pi-image.md](plans/pi-image.md) | pi-image/ | yes | done 07-14 (hardware runbook pending, see pi-image/README.md) |
 | 4 | [plans/synth-engine.md](plans/synth-engine.md) | synth/ | yes | done 07-14 (hardware checklist pending; see synth/README.md) |
 | 5 | [plans/patch-design.md](plans/patch-design.md) | synth sounds | after brainstorm + #4 | in progress 07-15: pads settled + roles live; energy/beats/chops next |
-| 6 | [plans/led-sync.md](plans/led-sync.md) | — | PARKED | stretch |
+| 6 | [plans/led-sync.md](plans/led-sync.md) | synth/ + shinycore | after #5's clock | planned 07-14, likely bonus |
 
 1–4 are independent BECAUSE they all build against
 [midi-contract.md](midi-contract.md). The contract is frozen; only Nevyn changes
