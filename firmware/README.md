@@ -31,15 +31,30 @@ run it again.
   resting pot is silent but a sweep still reaches 0 and 127 is checked on the
   host by [test/pot_filter_test.cpp](test/pot_filter_test.cpp) on every build.
 
+## Hardware gotchas (learned at the bench)
+
+- **The USB *product* descriptor is what names the MIDI device**, not the MIDI
+  jack string — hosts show `iProduct`, so the sketch overrides it to
+  "Chaossynth" via `TinyUSBDevice.setProductDescriptor()`. Verify with
+  `ioreg -r -c IOUSBHostDevice -l | grep "USB Product Name"`.
+- **macOS caches the old MIDI name** per device: after a rename, delete the
+  greyed-out entry in Audio MIDI Setup > MIDI Studio and replug. Linux (the Pi)
+  has no such cache and always shows the live USB name.
+- **Every declared mux channel must be wired or grounded.** An unconnected
+  channel floats and drifts CCs forever (~value 30ish, trickling past the
+  deadband); the checklist's hands-off-silence item fails until all 8 channel
+  inputs have a pot or a GND tie.
+
 ## Hardware checklist (Nevyn)
 
 Flash, then `brew install receivemidi` and watch `receivemidi dev Chaossynth`:
 
 1. [ ] Replug the panel: CC 123 value 0 appears once, before any other message.
-2. [ ] Every button: exactly one NoteOn (note = its id 0-17, velocity 127) on
+2. [ ] Every button: exactly one NoteOn (note = its id 0-19, velocity 127) on
        press and one NoteOff on release. Mash aggressively — no doubles.
 3. [ ] Every pot: a full sweep reaches both 0 and 127 and moves cleanly.
-4. [ ] Hands off everything for two minutes: zero MIDI traffic.
+4. [ ] Hands off everything for two minutes: zero MIDI traffic. (Only passes
+       once all 8 mux channels are wired or grounded — see gotchas above.)
 5. [ ] Pull the expander's I2C wiring mid-run: its buttons go quiet and any held
        notes release within ~250 ms (a brief garbage burst right at the yank is
        possible); replug and they work again within ~250 ms, no reboot needed.

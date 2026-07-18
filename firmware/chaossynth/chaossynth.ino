@@ -238,6 +238,12 @@ void setup() {
     Serial.begin(115200);
   }
 
+  // The contract requires the panel to enumerate as "Chaossynth" — the synth
+  // picks its input by that name. CoreMIDI names the port after the USB *product*
+  // string (the board default is "RP2350 Zero"), so setting the MIDI jack string
+  // alone isn't enough; override the product descriptor too.
+  TinyUSBDevice.setManufacturerDescriptor("Chaos Synth");
+  TinyUSBDevice.setProductDescriptor("Chaossynth");
   usbMidiTransport.setStringDescriptor("Chaossynth");
   MIDI.begin(MIDI_CHANNEL_OMNI);
   // The MIDI library enables soft-thru by default; combined with MIDI.read()

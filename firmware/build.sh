@@ -55,10 +55,37 @@ mkdir -p .arduino
 c++ -std=c++17 -Wall -Werror -o .arduino/pot_filter_test test/pot_filter_test.cpp
 ./.arduino/pot_filter_test
 
+OUT="$PWD/.arduino/build-out"
 echo "== compiling for $FQBN"
-arduino-cli compile --fqbn "$FQBN" chaossynth
+arduino-cli compile --fqbn "$FQBN" --output-dir "$OUT" chaossynth
 
 if [[ "${1:-}" == "--flash" ]]; then
-  echo "== uploading"
-  arduino-cli upload --fqbn "$FQBN" chaossynth
+  # Most reliable path: a board in BOOTSEL mode mounts as a USB drive — copy the
+  # UF2 straight onto it. Covers a brand-new/wedged board and the field spare.
+  bootsel=""
+  for v in /Volumes/RP2350 /Volumes/RPI-RP2 /Volumes/RP2040; do
+    [[ -d "$v" ]] && bootsel="$v" && break
+  done
+  if [[ -n "$bootsel" ]]; then
+    echo "== board in BOOTSEL mode ($bootsel) -- copying UF2"
+    cp "$OUT/chaossynth.ino.uf2" "$bootsel/"
+    echo "== done; the board reboots into the new firmware"
+  else
+    # Board running a sketch: find its USB serial port. arduino-cli does the
+    # 1200bps-touch reset into BOOTSEL and flashes. Override with PORT=/dev/...
+    port="${PORT:-}"
+    if [[ -z "$port" ]]; then
+      n=$(ls /dev/cu.usbmodem* 2>/dev/null | wc -l | tr -d ' ')
+      if [[ "$n" == "0" ]]; then
+        echo "error: no board found on a USB serial port." >&2
+        echo "  Put it in BOOTSEL mode (hold BOOT, tap RESET, or hold BOOT while" >&2
+        echo "  plugging in USB) so it mounts as a drive, then re-run --flash." >&2
+        exit 1
+      fi
+      port=$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1)
+      [[ "$n" != "1" ]] && echo "note: $n usbmodem ports found; using $port (set PORT=... to pick another)"
+    fi
+    echo "== uploading to $port"
+    arduino-cli upload -p "$port" --input-dir "$OUT" --fqbn "$FQBN" chaossynth
+  fi
 fi
