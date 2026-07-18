@@ -84,6 +84,7 @@ constexpr uint16_t POLL_INTERVAL_MS  = 5;
 constexpr uint16_t MUX_SETTLE_US     = 5;
 constexpr uint16_t DEBOUNCE_MS       = 10;
 constexpr uint16_t EXPANDER_CHECK_MS = 250;
+constexpr uint16_t MOUNT_GRACE_MS    = 2500;
 constexpr bool     SERIAL_DEBUG      = true;
 
 #include "mapping.h"
@@ -279,21 +280,34 @@ void loop() {
   MIDI.read();  // drain and ignore any input; keeps the RX buffer from clogging
 
   // Nothing to say until the host has enumerated us — TinyUSB drops writes anyway.
+  // And even then, hold MOUNT_GRACE_MS of silence first: host MIDI clients
+  // (receivemidi, the synth's rescan) attach noticeably after enumeration, and a
+  // CC 123 sent instantly lands before anyone listens and is dropped (observed
+  // at the bench). The synth hunts for us every 0.5 s while disconnected, so
+  // 2.5 s covers it; a yank the synth never noticed is caught by its max-hold.
   static bool wasMounted = false;
+  static bool announced = false;
+  static uint32_t mountedAtMs = 0;
+  uint32_t now = millis();
   if (!TinyUSBDevice.mounted()) {
     wasMounted = false;
     return;
   }
   if (!wasMounted) {
     wasMounted = true;
-    // Contract: CC 123 (All Notes Off, value 0) once at boot. Also re-sent after
-    // a cable yank, because the synth may still hold voices from before it.
+    announced = false;
+    mountedAtMs = now;
+  }
+  if (!announced) {
+    if (now - mountedAtMs < MOUNT_GRACE_MS) return;
+    announced = true;
+    // Contract: CC 123 (All Notes Off, value 0) on every mount, before anything
+    // else — a cable yank can strand held voices on the synth.
     MIDI.sendControlChange(123, 0, MIDI_CHANNEL);
     if (SERIAL_DEBUG) Serial.println("USB mounted, sent CC 123");
   }
 
   static uint32_t lastPoll = 0;
-  uint32_t now = millis();
   if (now - lastPoll < POLL_INTERVAL_MS) return;
   lastPoll = now;
 

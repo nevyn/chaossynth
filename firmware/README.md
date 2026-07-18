@@ -44,6 +44,14 @@ run it again.
   channel floats and drifts CCs forever (~value 30ish, trickling past the
   deadband); the checklist's hands-off-silence item fails until all 8 channel
   inputs have a pot or a GND tie.
+- **CC 123 is sent 2.5 s after mount, not instantly.** Host MIDI clients attach
+  noticeably after USB enumeration; sent immediately, the all-notes-off lands
+  before anyone listens and is dropped (observed at the bench). The synth hunts
+  for the panel every 0.5 s while disconnected, so 2.5 s covers it. The panel
+  is deliberately silent during that grace window.
+- **macOS may display the device as "Chaossynth RP2350 Zero"** (device + stale
+  cached port name composite). Harmless: the synth matches on the USB device
+  field, which is exactly "Chaossynth"; the Pi shows the clean name.
 
 ## Hardware checklist (Nevyn)
 
