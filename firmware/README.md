@@ -36,6 +36,14 @@ run it again.
 
 ## Hardware gotchas (learned at the bench)
 
+- **Two buttons firing as a pair = resistive flux bridge, invisible to a
+  continuity beeper.** A ~26 kOhm flux/solder-gunk bridge between adjacent
+  expander legs won't beep (beepers need near-zero ohms) but easily wins
+  against the chip's ~100 kOhm pullups, so grounding either pin reads BOTH
+  low. Diagnose with the meter in Ohm mode: adjacent input pins should read
+  like every other pair (>100 kOhm-ish, the pullup path). Fix: IPA scrub
+  between the DIP legs, reflow if a whisker remains.
+
 - **The USB *product* descriptor is what names the MIDI device**, not the MIDI
   jack string — hosts show `iProduct`, so the sketch overrides it to
   "Chaossynth" via `TinyUSBDevice.setProductDescriptor()`. Verify with
