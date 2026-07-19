@@ -18,6 +18,7 @@ LIBS=(
   "Adafruit TinyUSB Library@3.7.7"
   "MIDI Library@5.0.2"
   "Adafruit MCP23017 Arduino Library@2.3.2"
+  "Adafruit NeoPixel@1.15.5"
 )
 PICO_INDEX="https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json"
 

@@ -7,11 +7,12 @@
 //   Boards Manager: "Raspberry Pi Pico/RP2040/RP2350" by Earle F. Philhower III (5.6.1)
 //   Tools > Board: Waveshare RP2350 Zero;  Tools > USB Stack: Adafruit TinyUSB
 //   Libraries: Adafruit TinyUSB Library 3.7.7, MIDI Library 5.0.2,
-//              Adafruit MCP23017 Arduino Library 2.3.2
+//              Adafruit MCP23017 Arduino Library 2.3.2, Adafruit NeoPixel 1.15.5
 
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_MCP23X17.h>
+#include <Adafruit_NeoPixel.h>
 #include <Adafruit_TinyUSB.h>
 #include <MIDI.h>
 
@@ -88,6 +89,27 @@ constexpr uint16_t MOUNT_GRACE_MS    = 2500;
 constexpr bool     SERIAL_DEBUG      = true;
 
 #include "mapping.h"
+
+////////////// Status LED //////////////
+//
+// The Zero's onboard WS2812 (GP16). A dark board is indistinguishable from a
+// dead one — learned at the bench. Orange = powered, waiting for USB;
+// green = mounted with all expanders healthy; red = an expander is missing.
+// Dim on purpose: full brightness is ~40 mA and blinding in a dark tent.
+
+Adafruit_NeoPixel statusLed(1, 16, NEO_GRB + NEO_KHZ800);
+
+constexpr uint32_t LED_WAITING = 0x1C0C00; // orange
+constexpr uint32_t LED_OK      = 0x001800; // green
+constexpr uint32_t LED_FAULT   = 0x200000; // red
+
+static void setStatusLed(uint32_t color) {
+  static uint32_t current = 1; // impossible value, so the first call writes
+  if (color == current) return;
+  current = color;
+  statusLed.setPixelColor(0, color);
+  statusLed.show();
+}
 
 ////////////// State //////////////
 
@@ -239,6 +261,9 @@ void setup() {
     Serial.begin(115200);
   }
 
+  statusLed.begin();
+  setStatusLed(LED_WAITING);
+
   // The contract requires the panel to enumerate as "Chaossynth" — the synth
   // picks its input by that name. CoreMIDI names the port after the USB *product*
   // string (the board default is "RP2350 Zero"), so setting the MIDI jack string
@@ -291,6 +316,7 @@ void loop() {
   uint32_t now = millis();
   if (!TinyUSBDevice.mounted()) {
     wasMounted = false;
+    setStatusLed(LED_WAITING);
     return;
   }
   if (!wasMounted) {
@@ -312,6 +338,13 @@ void loop() {
   lastPoll = now;
 
   maintainExpanders(now);
+
+  bool expandersHealthy = true;
+  for (size_t i = 0; i < NUM_EXPANDERS; i++) {
+    expandersHealthy = expandersHealthy && expanderOk[i];
+  }
+  setStatusLed(expandersHealthy ? LED_OK : LED_FAULT);
+
   scanButtons(now);
   scanPots();
 }

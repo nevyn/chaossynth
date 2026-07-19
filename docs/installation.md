@@ -59,7 +59,7 @@ To change either later: `overlayfs.sh off`, do the thing, `overlayfs.sh on` agai
 | Symptom | Check, in order |
 |---|---|
 | No drone at all | speaker powered + cable seated → `systemctl status chaossynth` → journal |
-| Drone but controls dead | USB cable panel→Pi → does `aconnect -l` list "Chaossynth"? → RP2350 power LED |
+| Drone but controls dead | USB cable panel→Pi → does `aconnect -l` list "Chaossynth"? → RP2350 status LED: dark = no power, orange = USB not mounted, red = expander wiring, green = panel-side fine |
 | One control flaky/dead | its screw terminal first (retighten, reseat wire), THEN mapping vs reality: layout tool, fix, deploy |
 | Pi unreachable over SSH | hotspot actually on? give it 2 min; worst case power-cycle |
 | Everything cursed | swap in the cloned SD card; still cursed → swap the spare RP2350 |

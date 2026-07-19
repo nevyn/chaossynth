@@ -26,6 +26,9 @@ run it again.
   pullups re-asserted on healthy chips because a brownout-reset MCP23017 still
   ACKs but has lost them. The serial console (115200 baud) logs
   `expander N up` / `expander N LOST`.
+- Status LED (the Zero's onboard WS2812): **orange** = powered but no USB host
+  yet, **green** = mounted and all expanders healthy, **red** = an expander is
+  missing, **dark** = no power (or no firmware). Deliberately dim.
 - Buttons debounce at 10 ms. Pots go through EMA + deadband
   ([chaossynth/pot_filter.h](chaossynth/pot_filter.h)); the invariant that a
   resting pot is silent but a sweep still reaches 0 and 127 is checked on the
@@ -66,3 +69,5 @@ Flash, then `brew install receivemidi` and watch `receivemidi dev Chaossynth`:
 5. [ ] Pull the expander's I2C wiring mid-run: its buttons go quiet and any held
        notes release within ~250 ms (a brief garbage burst right at the yank is
        possible); replug and they work again within ~250 ms, no reboot needed.
+6. [ ] Status LED: orange on power-up, green ~3 s after plugging into a host,
+       red during the step-5 yank, back to green on replug.
